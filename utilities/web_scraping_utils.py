@@ -17,6 +17,8 @@ def init_chrome():
     os.environ["PATH"] += os.pathsep + parent_directory
     chrome_options = Options()
     chrome_options.add_argument('--headless')  # 注释这行以便观察
+    # chromedriver_path = '/Users/maxfeng/Documents/GitHub/financial_tools/chromedriver'
+    # driver = webdriver.Chrome(executable_path=chromedriver_path, options=chrome_options)
     driver = webdriver.Chrome(options=chrome_options)
 
     return driver
