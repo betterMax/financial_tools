@@ -1,49 +1,40 @@
 from openpyxl import load_workbook
-import time
+import pandas as pd
 from utilities.web_scraping_utils import get_latest_price
 
 
 def run(path, mode):
     # 加载工作簿
     wb = load_workbook(filename=path, data_only=True)
+    ws = wb['Sheet1']
 
     # 待处理的sheet列表
-    relation_dict = {'A':'D', 'B':'E', 'C':'F'}
+    relation_dict = {'A': 'D', 'B': 'E', 'C': 'F'}
     if mode == 'work':
         columns = ['A', 'B']
     else:
         columns = ['A', 'B', 'C']
 
+    # 创建DataFrame
+    data = []
     for column in columns:
-        # 选择工作表
-        ws = wb['Sheet1']
-
-        # 初始化行号
         row = 3
-
-        # 循环处理每一行，直到A列没有数据
         while ws[f'{column}{row}'].value is not None:
-            # 读取单元格
             code = ws[f'{column}{row}'].value
-            print(f'update {code} price')
-            latest_price = get_latest_price(code)
-
-            # 尝试将价格转换为浮点数
-            try:
-                if latest_price is not None:
-                    price = float(latest_price)
-                else:
-                    print(f'Warning: Latest price is None. Please check the price.')
-            except ValueError:
-                print(f'Warning: Cannot convert price "{latest_price}" to number. Please check the price.')
-            else:
-                ws[f'{relation_dict[column]}{row}'].value = price
-
-            # 处理下一行
+            data.append({'code': code, 'position': f'{relation_dict[column]}{row}', 'price': 0})
             row += 1
 
-            # 暂停一段时间
-            time.sleep(5)  # 这里设置暂停一秒，可以根据实际需要调整
+    df = pd.DataFrame(data)
 
-    # 保存修改
+    # 去重并获取价格
+    unique_codes = df['code'].unique()
+    for code in unique_codes:
+        price = get_latest_price(code)  # 假设这个函数返回价格
+        df.loc[df['code'] == code, 'price'] = price
+
+    # 更新回工作簿
+    for _, row in df.iterrows():
+        ws[row['position']] = row['price']
+
+    # 保存工作簿
     wb.save(path)
