@@ -211,7 +211,9 @@ def extract_data_with_refined_trim():
                             break
 
     driver.close()
-    return results
+    # 去重处理
+    unique_results = list(set(results))
+    return unique_results
 
 
 def get_stock_latest_price(driver, code):

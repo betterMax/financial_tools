@@ -1,5 +1,5 @@
 from tasks import update_qihuo_price, update_qihuo_main, update_stock_price, update_qihuo_history
-from config import EXCEL_PATH1, EXCEL_PATH2, EXCEL_PATH3, EXCEL_PATH4
+from config import EXCEL_PATH1, EXCEL_PATH2, EXCEL_PATH3, EXCEL_PATH4, Input_Path, Output_Path
 import time
 
 
@@ -7,7 +7,7 @@ def main():
     # 程序开始时记录时间
     start_time = time.time()
     # 询问用户要运行哪些任务，并获取逗号分隔的任务编号
-    tasks_str = input("请选择要执行的任务（1-任务1，2-任务2，3-任务3，all-全部任务。多个任务请用逗号分隔）：")
+    tasks_str = input("请选择要执行的任务（1-任务1，2-任务2，3-任务3，4-任务4，all-全部任务。多个任务请用逗号分隔）：")
 
     # 如果用户输入 'all'，则运行所有任务
     if tasks_str.lower() == 'all':
@@ -23,17 +23,20 @@ def main():
     # 对于每个任务编号，运行相应的任务
     for task in tasks:
         if task == '1':
-            file_path = EXCEL_PATH1
-            update_qihuo_price.run(file_path, mode)
+            input_path = Input_Path
+            output_path = Output_Path
+            update_qihuo_price.run(input_path, output_path, mode)
         elif task == '2':
-            file_path = EXCEL_PATH2
+            file_path = Output_Path
             update_qihuo_main.run(file_path)
         elif task == '3':
-            file_path = EXCEL_PATH3
-            update_stock_price.run(file_path, mode)
+            input_path = Input_Path
+            output_path = Output_Path
+            update_stock_price.run(input_path, output_path, mode)
         elif task == '4':
-            file_path = EXCEL_PATH4
-            update_qihuo_history.run(file_path)
+            input_path = Input_Path
+            output_path = Output_Path
+            update_qihuo_history.run(input_path, output_path)
 
         else:
             print(f"无效的选择：{task}")

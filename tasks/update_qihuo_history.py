@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 
 
-def run(path):
-    dataframes = split_excel_by_blank_rows(path, 'Sheet1')
+def run(input_path, output_path):
+    dataframes = split_excel_by_blank_rows(input_path, 'Sheet1')
 
     processed_data_blocks = process_data_blocks(dataframes)
 
@@ -36,4 +36,4 @@ def run(path):
         all_new_dfs.append(new_df)
 
     # 保存所有 new_df 到Excel文件
-    save_new_dfs_to_excel(all_new_dfs, '/Users/maxfeng/Downloads/Future_Strategy.xlsx')
+    save_new_dfs_to_excel(all_new_dfs, output_path)

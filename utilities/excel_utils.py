@@ -1,4 +1,6 @@
 import pandas as pd
+from openpyxl import load_workbook
+import numpy as np
 
 
 def excel_column_to_list(file_path, column_name):
@@ -9,13 +11,19 @@ def excel_column_to_list(file_path, column_name):
 def save_results_to_excel(results, excel_path):
     try:
         df = pd.read_excel(excel_path)
-    except FileNotFoundError:
-        df = pd.DataFrame()
 
-    for idx, (value_1, value_2) in enumerate(results, start=1):
-        value_2 = round(float(value_2), 1)
-        df.at[idx-1, '代码'] = value_1
-        df.at[idx-1, '价格'] = value_2
+        # 检查Q和R列是否存在，如果存在则清除除标题外的所有数据
+        if '代码' in df.columns and '价格' in df.columns:
+            df.loc[0:, '代码'] = pd.NA  # 清除Q列除了第一行外的所有数据
+            df.loc[0:, '价格'] = pd.NA  # 清除R列除了第一行外的所有数据
+    except FileNotFoundError:
+        # 当文件不存在时，创建一个新的DataFrame
+        df = pd.DataFrame(columns=['代码', '价格'])
+
+    for idx, (code, price) in enumerate(results, start=1):
+        price = round(float(price), 1)
+        df.at[idx-1, '代码'] = code
+        df.at[idx-1, '价格'] = price
 
     df.to_excel(excel_path, index=False)
 
@@ -52,7 +60,12 @@ def find_data(df, row_name, column_name):
 
 
 def split_excel_by_blank_rows(file_path, sheet_name):
-    df = pd.read_excel(file_path, sheet_name=sheet_name, header=None, index_col=None)
+    # Excel列名从A开始，因此"Q"列是第17列，但是在 pandas 中列索引从0开始计数
+    start_col_index = 16  # "Q"列的索引
+
+    # 读取从"Q"列开始的所有列
+    df = pd.read_excel(file_path, sheet_name=sheet_name, header=None, index_col=None,
+                       usecols=lambda x: x >= start_col_index)
     print(df.shape)
     # 查找空白行的索引以横向分割
     blank_row_indices = df[df.isnull().all(axis=1)].index
@@ -113,8 +126,59 @@ def process_data_blocks(dataframes):
 
 
 def save_new_dfs_to_excel(new_dfs, file_path):
-    with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+    with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
         startrow = 0
+        startcol = 20  # "U"列是第21列，但索引从0开始，所以用20
+
+        # 循环处理每个新的DataFrame
         for new_df in new_dfs:
-            new_df.to_excel(writer, sheet_name='Sheet1', startrow=startrow, index=True)
-            startrow += len(new_df.index) + 6  # 数据块长度 + 5行空白 + 1行因自增而来的
+            # 直接写入新数据，从"U"列开始
+            new_df.to_excel(writer, sheet_name='Sheet1', startrow=startrow, startcol=startcol, index=True)
+
+            # 更新起始行位置
+            startrow += len(new_df.index) + 6  # 为下一个数据块留出空间
+
+
+def load_workbooks(input_path, output_path):
+    wb_input = load_workbook(filename=input_path, data_only=True)
+    ws_input = wb_input['Sheet1']
+
+    wb_output = load_workbook(filename=output_path, data_only=True)
+    ws_output = wb_output['Sheet1']
+
+    return wb_input, ws_input, wb_output, ws_output
+
+
+def sync_and_clear_extra_data(ws_input, ws_output, columns, relation_dict):
+    for column in columns:
+        row, input_row_count = 3, 0
+        while ws_input[f'{column}{row}'].value is not None:
+            ws_output[f'{column}{row}'].value = ws_input[f'{column}{row}'].value
+            row += 1
+            input_row_count += 1
+
+        while ws_output[f'{column}{row}'].value is not None:
+            ws_output[f'{column}{row}'].value = None
+            row += 1
+
+        related_column = relation_dict[column]
+        output_related_row = 3 + input_row_count
+        while ws_output[f'{related_column}{output_related_row}'].value is not None:
+            ws_output[f'{related_column}{output_related_row}'].value = None
+            output_related_row += 1
+
+
+def save_workbooks(wb_input, wb_output, input_path, output_path):
+    wb_output.save(output_path)
+    wb_input.save(input_path)
+
+
+def create_dataframe_from_columns(ws, columns, relation_dict):
+    data = []
+    for column in columns:
+        row = 3
+        while ws[f'{column}{row}'].value is not None:
+            code = ws[f'{column}{row}'].value
+            data.append({'code': code, 'position': f'{relation_dict[column]}{row}'})
+            row += 1
+    return pd.DataFrame(data)
