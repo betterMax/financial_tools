@@ -1,5 +1,5 @@
 from tasks import update_qihuo_price, update_qihuo_main, update_stock_price, update_qihuo_history
-from config import EXCEL_PATH1, EXCEL_PATH2, EXCEL_PATH3, EXCEL_PATH4, Input_Path, Output_Path
+from config import Input_Path, Output_Path
 import time
 
 
