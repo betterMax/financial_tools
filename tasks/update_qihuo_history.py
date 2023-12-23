@@ -32,8 +32,70 @@ def run(input_path, output_path):
                 # 将这个和填入新的数据框中的对应位置
                 new_df.loc[row_name, column_name] = data_sum
 
-        # print(f'new_df: {new_df}')
+        print(f'new_df: {new_df}')
         all_new_dfs.append(new_df)
 
+    # 开始处理3个new_df，来获取最后的结果
+    df1 = all_new_dfs[0]
+    df2 = all_new_dfs[1]
+    df3 = all_new_dfs[2]
+    df1 = df1.reset_index().rename(columns={'index': '成功'})
+    df2 = df2.reset_index().rename(columns={'index': '总数'})
+    df3 = df3.reset_index().rename(columns={'index': '收益'})
+
+    # 对第一个DataFrame进行扩充，确保行和列的顺序与第二个和第三个DataFrame一致
+    df1_expanded_correctly = df1.set_index('成功').reindex(df2.set_index(df2.columns[0]).index).reset_index()
+    df1_expanded_correctly.rename(columns={'总数':'成功'}, inplace=True)
+
+    # 第二步：创建两个新的DataFrame，一个用于保存分数形式的结果，另一个用于保存小数形式的结果
+    # 分数形式
+    df_fraction = df1_expanded_correctly.set_index('成功').astype(str).replace('\.0', '',
+                                                                               regex=True) + '/' + df2.set_index(
+        df2.columns[0]).astype(str).replace('\.0', '', regex=True)
+
+    # 小数形式
+    df_decimal = df1_expanded_correctly.set_index('成功').div(df2.set_index(df2.columns[0]))
+    df_decimal = df_decimal.astype('float64')
+    df_decimal = df_decimal.round(2)
+    df1_expanded_correctly.set_index('成功', inplace=True)
+
+    # 第三步：使用第五个DataFrame（小数版本）和原始的第二个DataFrame进行操作
+    # 相乘后除以第二个DataFrame中的值和10中的较大者
+    df6 = df_decimal.mul(df2.set_index(df2.columns[0])).div(df2.set_index(df2.columns[0]).clip(lower=10))
+    df6 = df6.astype('float64')
+    df6 = df6.round(2)
+
+    # 第四步：根据第二个 DataFrame 的值进行条件操作
+    df7 = df3.set_index(df3.columns[0]).div(df2.set_index(df2.columns[0]).clip(upper=10, lower=1e-6))
+    df7 = df7.round(2)
+
+    df2 = df2.set_index('总数')
+    df3 = df3.set_index('收益')
+
+    # 第五步：调整 DataFrame 在列表中的顺序
+    all_new_dfs = [df1_expanded_correctly, df2, df3, df_fraction, df_decimal, df6, df7]
+    all_new_dfs.insert(0, all_new_dfs.pop(3))  # 将第四个元素移动到第一个位置
+
+    # 第六步：使用阈值筛选第六和第七个 DataFrame 的数据
+    threshold_df6 = 0.5  # 第六个 DataFrame 的阈值
+    threshold_df7 = 5000  # 第七个 DataFrame 的阈值
+
+    # 筛选第六个 DataFrame
+    df6_filtered = df6[df6 > threshold_df6].stack().reset_index()
+    df6_filtered.columns = ['行名', '列名', '值']
+
+    # 筛选第七个 DataFrame
+    df7_filtered = df7[df7 > threshold_df7].stack().reset_index()
+    df7_filtered.columns = ['行名', '列名', '值']
+
+    df6_filtered['组合'] = df6_filtered['列名'] + '+' + df6_filtered['行名']
+    df7_filtered['组合'] = df7_filtered['列名'] + '+' + df7_filtered['行名']
+
+    df6_filtered = df6_filtered[['组合', '值']]
+    df7_filtered = df7_filtered[['组合', '值']]
+    df6_filtered.set_index('组合', inplace=True)
+    df7_filtered.set_index('组合', inplace=True)
+    conclusion_dfs = [df6_filtered, df7_filtered]
+
     # 保存所有 new_df 到Excel文件
-    save_new_dfs_to_excel(all_new_dfs, output_path)
+    save_new_dfs_to_excel(all_new_dfs, conclusion_dfs, output_path)

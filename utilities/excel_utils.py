@@ -125,7 +125,7 @@ def process_data_blocks(dataframes):
     return processed_blocks
 
 
-def save_new_dfs_to_excel(new_dfs, file_path):
+def save_new_dfs_to_excel(new_dfs, conclusions, file_path):
     with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
         startrow = 0
         startcol = 20  # "U"列是第21列，但索引从0开始，所以用20
@@ -137,6 +137,11 @@ def save_new_dfs_to_excel(new_dfs, file_path):
 
             # 更新起始行位置
             startrow += len(new_df.index) + 6  # 为下一个数据块留出空间
+
+        # 循环处理结论里的DataFrame
+        conclusions[0].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=30, index=True)
+        conclusions[1].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=32, index=True)
+
 
 
 def load_workbooks(input_path, output_path):
@@ -182,3 +187,5 @@ def create_dataframe_from_columns(ws, columns, relation_dict):
             data.append({'code': code, 'position': f'{relation_dict[column]}{row}'})
             row += 1
     return pd.DataFrame(data)
+
+

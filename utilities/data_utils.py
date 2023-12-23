@@ -11,6 +11,7 @@ def get_price_with_error_handling(get_price_func, code, driver=None):
         print(f'Error while getting price for {code}: {e}')
         return 0
 
+
 def update_prices(df, get_price_func, ws_output, driver=None):
     df = df.drop_duplicates(subset='code')
 
