@@ -11,7 +11,7 @@ def run(input_path, output_path):
     # 打印处理后的数据块作为示例
     all_new_dfs = []
     for i, df in enumerate(processed_data_blocks):
-        print(f"Data Block {i + 1}:")
+        # print(f"Data Block {i + 1}:")
         # 使用 set 函数收集所有单独的行名和列名，然后用 numpy 的 unique 函数得到所有不重复的行名和列名
         row_names = {name for row_name in df.index for name in row_name.split('+')}
         column_names = {name for column_name in df.columns for name in column_name.split('+')}
@@ -32,7 +32,7 @@ def run(input_path, output_path):
                 # 将这个和填入新的数据框中的对应位置
                 new_df.loc[row_name, column_name] = data_sum
 
-        print(f'new_df: {new_df}')
+        # print(f'new_df: {new_df}')
         all_new_dfs.append(new_df)
 
     # 开始处理3个new_df，来获取最后的结果
@@ -61,12 +61,23 @@ def run(input_path, output_path):
 
     # 第三步：使用第五个DataFrame（小数版本）和原始的第二个DataFrame进行操作
     # 相乘后除以第二个DataFrame中的值和10中的较大者
-    df6 = df_decimal.mul(df2.set_index(df2.columns[0])).div(df2.set_index(df2.columns[0]).clip(lower=10))
+    # df6 = df_decimal.mul(df2.set_index(df2.columns[0])).div(df2.set_index(df2.columns[0]).clip(lower=10))
+    df2_conditioned = df2.copy()
+    df2_conditioned.set_index(df2_conditioned.columns[0], inplace=True)
+    df2_conditioned[df2_conditioned < 10] = 10
+    df6 = df1_expanded_correctly.div(df2_conditioned)
     df6 = df6.astype('float64')
     df6 = df6.round(2)
 
     # 第四步：根据第二个 DataFrame 的值进行条件操作
-    df7 = df3.set_index(df3.columns[0]).div(df2.set_index(df2.columns[0]).clip(upper=10, lower=1e-6))
+    # df7 = df3.set_index(df3.columns[0]).div(df2.set_index(df2.columns[0]).clip(upper=10, lower=1e-6))
+    df2_conditioned = df2.copy()
+    df2_conditioned.set_index(df2_conditioned.columns[0], inplace=True)
+    df2_conditioned[df2_conditioned < 10] = 100000
+    df3_conditioned = df3.copy()
+    df3_conditioned.set_index(df3_conditioned.columns[0], inplace=True)
+    df7 = df3_conditioned.div(df2_conditioned)
+    df7 = df7.astype('float64')
     df7 = df7.round(2)
 
     df2 = df2.set_index('总数')
@@ -78,7 +89,7 @@ def run(input_path, output_path):
 
     # 第六步：使用阈值筛选第六和第七个 DataFrame 的数据
     threshold_df6 = 0.5  # 第六个 DataFrame 的阈值
-    threshold_df7 = 5000  # 第七个 DataFrame 的阈值
+    threshold_df7 = 3000  # 第七个 DataFrame 的阈值
 
     # 筛选第六个 DataFrame
     df6_filtered = df6[df6 > threshold_df6].stack().reset_index()
@@ -96,6 +107,9 @@ def run(input_path, output_path):
     df6_filtered.set_index('组合', inplace=True)
     df7_filtered.set_index('组合', inplace=True)
     conclusion_dfs = [df6_filtered, df7_filtered]
+    print(f'all_new_dfs: {all_new_dfs[0].shape},{all_new_dfs[1].shape},{all_new_dfs[2].shape}',
+          f'{all_new_dfs[3].shape},{all_new_dfs[4].shape},{all_new_dfs[5].shape},{all_new_dfs[6].shape}'
+          f'; conclusion_dfs: {len(conclusion_dfs)}')
 
     # 保存所有 new_df 到Excel文件
     save_new_dfs_to_excel(all_new_dfs, conclusion_dfs, output_path)

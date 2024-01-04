@@ -1,5 +1,7 @@
 import pandas as pd
 from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
+import openpyxl
 import numpy as np
 
 
@@ -125,23 +127,76 @@ def process_data_blocks(dataframes):
     return processed_blocks
 
 
+# def save_new_dfs_to_excel(new_dfs, conclusions, file_path):
+#     try:
+#         df = pd.read_excel(file_path)
+#         # 检查Q和R列是否存在，如果存在则清除除标题外的所有数据
+#         if '历史' in df.columns :
+#             df.loc[0:, '代码'] = pd.NA  # 清除Q列除了第一行外的所有数据
+#
+#         startrow = 1
+#         startcol = 20  # "U"列是第21列，但索引从0开始，所以用20
+#
+#         # 循环处理每个新的DataFrame
+#         for new_df in new_dfs:
+#             # 直接写入新数据，从"U"列开始
+#             new_df.to_excel(writer, sheet_name='Sheet1', startrow=startrow, startcol=startcol, index=True)
+#
+#             # 更新起始行位置
+#             startrow += len(new_df.index) + 6  # 为下一个数据块留出空间
+#
+#         # 循环处理结论里的DataFrame
+#         conclusions[0].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=30, index=True)
+#         conclusions[1].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=32, index=True)
+#
+#     df.to_excel(file_path, index=False)
+#     with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
+#         startrow = 1
+#         startcol = 20  # "U"列是第21列，但索引从0开始，所以用20
+#
+#         # 循环处理每个新的DataFrame
+#         for new_df in new_dfs:
+#             # 直接写入新数据，从"U"列开始
+#             new_df.to_excel(writer, sheet_name='Sheet1', startrow=startrow, startcol=startcol, index=True)
+#
+#             # 更新起始行位置
+#             startrow += len(new_df.index) + 6  # 为下一个数据块留出空间
+#
+#         # 循环处理结论里的DataFrame
+#         conclusions[0].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=30, index=True)
+#         conclusions[1].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=32, index=True)
+
+
 def save_new_dfs_to_excel(new_dfs, conclusions, file_path):
+    # 尝试读取现有数据
+    try:
+        df = pd.read_excel(file_path)
+
+        # 清除指定列的数据
+        for col_index in range(20, 35):  # 从第21列到第35列（"U"到"AI"）
+            if col_index < len(df.columns):
+                df.iloc[0:, col_index] = pd.NA  # 从第二行开始清除数据
+
+    except FileNotFoundError:
+        # 当文件不存在时，创建一个新的DataFrame
+        df = pd.DataFrame()
+
+    # 保存清除后的DataFrame
+    df.to_excel(file_path, index=False)
+
+    # 写入新数据
     with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
         startrow = 0
-        startcol = 20  # "U"列是第21列，但索引从0开始，所以用20
+        startcol = 20  # "U"列
 
         # 循环处理每个新的DataFrame
         for new_df in new_dfs:
-            # 直接写入新数据，从"U"列开始
             new_df.to_excel(writer, sheet_name='Sheet1', startrow=startrow, startcol=startcol, index=True)
-
-            # 更新起始行位置
             startrow += len(new_df.index) + 6  # 为下一个数据块留出空间
 
-        # 循环处理结论里的DataFrame
+        # 写入结论里的DataFrame
         conclusions[0].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=30, index=True)
         conclusions[1].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=32, index=True)
-
 
 
 def load_workbooks(input_path, output_path):

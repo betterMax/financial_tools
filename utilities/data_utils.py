@@ -13,10 +13,13 @@ def get_price_with_error_handling(get_price_func, code, driver=None):
 
 
 def update_prices(df, get_price_func, ws_output, driver=None):
-    df = df.drop_duplicates(subset='code')
+    # 删除重复的代码，但先记录每个代码对应的所有位置
+    code_positions = df.groupby('code')['position'].apply(list).to_dict()
 
-    for _, row in df.iterrows():
-        code = row['code']
+    for code, positions in code_positions.items():
         print(f'Updating price for {code}')
         price = get_price_with_error_handling(get_price_func, code, driver)
-        ws_output[row['position']].value = price
+
+        # 更新这个代码对应的所有位置
+        for position in positions:
+            ws_output[position].value = price
