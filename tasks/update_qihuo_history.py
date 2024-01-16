@@ -104,12 +104,12 @@ def run(input_path, output_path):
 
     df6_filtered = df6_filtered[['组合', '值']]
     df7_filtered = df7_filtered[['组合', '值']]
-    df6_filtered.set_index('组合', inplace=True)
-    df7_filtered.set_index('组合', inplace=True)
-    conclusion_dfs = [df6_filtered, df7_filtered]
+    merged_df = pd.merge(df6_filtered, df7_filtered, on='组合', how='outer', suffixes=('_成功率', '_收益'))
+    merged_df.sort_values('组合', ascending=False, inplace=True)
+    merged_df.set_index('组合', inplace=True)
     print(f'all_new_dfs: {all_new_dfs[0].shape},{all_new_dfs[1].shape},{all_new_dfs[2].shape}',
           f'{all_new_dfs[3].shape},{all_new_dfs[4].shape},{all_new_dfs[5].shape},{all_new_dfs[6].shape}'
-          f'; conclusion_dfs: {len(conclusion_dfs)}')
+          f'; merged_df: {merged_df.shape}')
 
     # 保存所有 new_df 到Excel文件
-    save_new_dfs_to_excel(all_new_dfs, conclusion_dfs, output_path)
+    save_new_dfs_to_excel(all_new_dfs, merged_df, output_path)

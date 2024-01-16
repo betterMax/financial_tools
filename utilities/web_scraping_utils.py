@@ -118,7 +118,7 @@ def extract_data_with_refined_trim():
     parent_directory = os.path.dirname(current_directory)
     os.environ["PATH"] += os.pathsep + parent_directory
     chrome_options = Options()
-    chrome_options.add_argument('--headless')  # 注释这行以便观察
+    # chrome_options.add_argument('--headless')  # 注释这行以便观察
     driver = webdriver.Chrome(options=chrome_options)
 
     base_url = "http://vip.stock.finance.sina.com.cn/quotes_service/view/qihuohangqing.html"
@@ -142,6 +142,12 @@ def extract_data_with_refined_trim():
             time.sleep(3)
 
         print(f'Processing page {index} - {btn.text if index != 0 else "首页"}')
+
+        # 等待 div 加载
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.div_cont_wt"))
+        )
+
         # 找到所有的<div class="div_cont_wt">
         divs = driver.find_elements(By.CSS_SELECTOR, "div.div_cont_wt")
 
@@ -181,7 +187,7 @@ def extract_data_with_refined_trim():
                 all_satisfied = True
                 if next_page_buttons and "下一页" in [btn.text for btn in next_page_buttons]:
                     next_page_buttons[-1].click()
-                    time.sleep(1)
+                    time.sleep(3)
                     # 获取新页面的数据并添加到 item_df
                     new_page_df = get_table_data(div)
                     item_df = pd.concat([item_df, new_page_df], ignore_index=True)
@@ -244,6 +250,10 @@ def get_table_data(div):
         if len(row_data) > len(columns):
             row_data = row_data[:len(columns)]
         all_data.append(row_data)
+
+    # 检查是否有数据
+    if not all_data or not columns:
+        return pd.DataFrame()
 
     item_df = pd.DataFrame(all_data, columns=columns)
     item_df = item_df.dropna(how='all')

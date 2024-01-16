@@ -10,3 +10,4 @@ def run(path):
 
     # 保存到 .xlsx 文件
     save_results_to_excel(results, path)
+    return results

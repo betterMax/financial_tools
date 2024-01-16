@@ -195,8 +195,9 @@ def save_new_dfs_to_excel(new_dfs, conclusions, file_path):
             startrow += len(new_df.index) + 6  # 为下一个数据块留出空间
 
         # 写入结论里的DataFrame
-        conclusions[0].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=30, index=True)
-        conclusions[1].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=32, index=True)
+        conclusions.to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=30, index=True)
+        # conclusions[0].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=30, index=True)
+        # conclusions[1].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=32, index=True)
 
 
 def load_workbooks(input_path, output_path):

@@ -6,6 +6,7 @@ import time
 def main():
     # 程序开始时记录时间
     start_time = time.time()
+    results = []
     # 询问用户要运行哪些任务，并获取逗号分隔的任务编号
     tasks_str = input("请选择要执行的任务（1-任务1，2-任务2，3-任务3，4-任务4，all-全部任务。多个任务请用逗号分隔）：")
 
@@ -22,13 +23,13 @@ def main():
 
     # 对于每个任务编号，运行相应的任务
     for task in tasks:
-        if task == '1':
+        if task == '2':
+            file_path = Output_Path
+            results = update_qihuo_main.run(file_path)
+        elif task == '1':
             input_path = Input_Path
             output_path = Output_Path
             update_qihuo_price.run(input_path, output_path, mode)
-        elif task == '2':
-            file_path = Output_Path
-            update_qihuo_main.run(file_path)
         elif task == '3':
             input_path = Input_Path
             output_path = Output_Path
