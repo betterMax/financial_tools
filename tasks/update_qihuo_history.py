@@ -41,36 +41,37 @@ def run(input_path, output_path):
     df3 = all_new_dfs[2]
     df1 = df1.reset_index().rename(columns={'index': '成功'})
     df2 = df2.reset_index().rename(columns={'index': '总数'})
-    df3 = df3.reset_index().rename(columns={'index': '收益'})
+    df3 = df3.reset_index().rename(columns={'index': '总收益'})
 
     # 对第一个DataFrame进行扩充，确保行和列的顺序与第二个和第三个DataFrame一致
     df1_expanded_correctly = df1.set_index('成功').reindex(df2.set_index(df2.columns[0]).index).reset_index()
-    df1_expanded_correctly.rename(columns={'总数':'成功'}, inplace=True)
+    df1_expanded_correctly.rename(columns={'总数':'成功个数'}, inplace=True)
 
     # 第二步：创建两个新的DataFrame，一个用于保存分数形式的结果，另一个用于保存小数形式的结果
     # 分数形式
-    df_fraction = df1_expanded_correctly.set_index('成功').astype(str).replace('\.0', '',
+    df_fraction = df1_expanded_correctly.set_index('成功个数').astype(str).replace('\.0', '',
                                                                                regex=True) + '/' + df2.set_index(
         df2.columns[0]).astype(str).replace('\.0', '', regex=True)
+    df_fraction = df_fraction.rename_axis(index={'成功个数': '成功比率分数'})
 
     # 小数形式
-    df_decimal = df1_expanded_correctly.set_index('成功').div(df2.set_index(df2.columns[0]))
+    df_decimal = df1_expanded_correctly.set_index('成功个数').div(df2.set_index(df2.columns[0]))
     df_decimal = df_decimal.astype('float64')
     df_decimal = df_decimal.round(2)
-    df1_expanded_correctly.set_index('成功', inplace=True)
+    df_decimal = df_decimal.rename_axis(index={'成功个数': '成功率'})
 
     # 第三步：使用第五个DataFrame（小数版本）和原始的第二个DataFrame进行操作
     # 相乘后除以第二个DataFrame中的值和10中的较大者
-    # df6 = df_decimal.mul(df2.set_index(df2.columns[0])).div(df2.set_index(df2.columns[0]).clip(lower=10))
+    df1_expanded_correctly.set_index('成功个数', inplace=True)
     df2_conditioned = df2.copy()
     df2_conditioned.set_index(df2_conditioned.columns[0], inplace=True)
     df2_conditioned[df2_conditioned < 10] = 10
     df6 = df1_expanded_correctly.div(df2_conditioned)
     df6 = df6.astype('float64')
     df6 = df6.round(2)
+    df6 = df6.rename_axis(index={'成功个数': '绝对成功率'})
 
     # 第四步：根据第二个 DataFrame 的值进行条件操作
-    # df7 = df3.set_index(df3.columns[0]).div(df2.set_index(df2.columns[0]).clip(upper=10, lower=1e-6))
     df2_conditioned = df2.copy()
     df2_conditioned.set_index(df2_conditioned.columns[0], inplace=True)
     df2_conditioned[df2_conditioned < 10] = 100000
@@ -79,13 +80,14 @@ def run(input_path, output_path):
     df7 = df3_conditioned.div(df2_conditioned)
     df7 = df7.astype('float64')
     df7 = df7.round(2)
+    df7 = df7.rename_axis(index={'总收益': '绝对收益'})
 
     df2 = df2.set_index('总数')
-    df3 = df3.set_index('收益')
+    df3 = df3.set_index('总收益')
 
     # 第五步：调整 DataFrame 在列表中的顺序
-    all_new_dfs = [df1_expanded_correctly, df2, df3, df_fraction, df_decimal, df6, df7]
-    all_new_dfs.insert(0, all_new_dfs.pop(3))  # 将第四个元素移动到第一个位置
+    all_new_dfs = [df_fraction, df1_expanded_correctly, df2, df3, df_decimal, df6, df7]
+    # all_new_dfs.insert(0, all_new_dfs.pop(3))  # 将第四个元素移动到第一个位置
 
     # 第六步：使用阈值筛选第六和第七个 DataFrame 的数据
     threshold_df6 = 0.5  # 第六个 DataFrame 的阈值

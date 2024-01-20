@@ -78,7 +78,7 @@ def get_latest_price(code):
         print(f'Error getting price from sina: {e}')
 
     # 如果从新浪财经获取价格失败，尝试从商家网获取价格
-    if price is None or price == '--':  # or code[:2] == 'SM':
+    if price is None or price == '--' or code[:2] == 'SM' or code[:2] == 'C2':
         try:
             # 打开网页
             driver.get(shangjia_url)
