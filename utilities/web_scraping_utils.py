@@ -9,6 +9,7 @@ import pandas as pd
 import time
 from tqdm import tqdm
 from urllib.parse import quote
+import logging
 
 
 def init_chrome():
@@ -60,7 +61,7 @@ def get_latest_price(code):
     # print(f'path: {os.environ["PATH"]}')
     chrome_options = Options()
     chrome_options.add_argument('--headless')
-    driver = webdriver.Chrome(options=chrome_options)
+    driver = webdriver.Chrome(options=chrome_options) # https://googlechromelabs.github.io/chrome-for-testing/ 更新
 
     # 尝试从新浪财经获取价格
     try:
@@ -118,7 +119,7 @@ def extract_data_with_refined_trim():
     parent_directory = os.path.dirname(current_directory)
     os.environ["PATH"] += os.pathsep + parent_directory
     chrome_options = Options()
-    # chrome_options.add_argument('--headless')  # 注释这行以便观察
+    chrome_options.add_argument('--headless')  # 注释这行以便观察
     driver = webdriver.Chrome(options=chrome_options)
 
     base_url = "http://vip.stock.finance.sina.com.cn/quotes_service/view/qihuohangqing.html"
@@ -156,72 +157,78 @@ def extract_data_with_refined_trim():
                 continue  # 跳过当前迭代，处理下一个div
 
             item_df = get_table_data(div)  # 获取第一页的数据
+            if "成交量" in item_df.columns and "代码" in item_df.columns:
 
-            while True:
-                # 检查当前页面的 DataFrame 是否满足条件
-                item_df.sort_values(by=["成交量", "代码"], inplace=True)
-                item_df.reset_index(drop=True, inplace=True)
-                first_satisfied, all_satisfied = False, False
-                for i, row in item_df.iterrows():
-                    if (len(row["代码"]) == 3 or len(row["代码"]) == 2) and row["代码"][:-1].isalpha() and row["代码"][
-                        -1].isdigit():
-                        if i + 1 < len(item_df) and item_df.iloc[i + 1]["成交量"] == row["成交量"]:
-                            first_satisfied = True
+                while True:
+                    # 检查当前页面的 DataFrame 是否满足条件
+                    item_df.sort_values(by=["成交量", "代码"], inplace=True)
+                    item_df.reset_index(drop=True, inplace=True)
+                    first_satisfied, all_satisfied = False, False
+                    for i, row in item_df.iterrows():
+                        if (len(row["代码"]) == 3 or len(row["代码"]) == 2) and row["代码"][:-1].isalpha() and row["代码"][
+                            -1].isdigit():
+                            if i + 1 < len(item_df) and item_df.iloc[i + 1]["成交量"] == row["成交量"]:
+                                first_satisfied = True
+                                break
+
+                    if first_satisfied:
+                        if len(item_df) <= 2:
+                            print(f'processing {item_df.iloc[0, 0]}')
                             break
+                        else:
+                            columns_to_format = [col for col in item_df.columns if col not in ['代码', '名称', '涨跌幅']]
+                            for col in columns_to_format:
+                                item_df[col] = item_df[col].apply(format_decimal)
+                            value_1 = item_df.iloc[i + 1]["代码"]
+                            value_2 = item_df.iloc[i + 1]["最新价"]
+                            results.append((value_1, value_2))
+                            break  # 如果条件满足，跳出循环
 
-                if first_satisfied:
+                    # 检查是否有下一页，并翻页
+                    next_page_buttons = div.find_elements(By.CSS_SELECTOR, "div.pages a:not(.pagedisabled)")
+                    all_satisfied = True
+                    if next_page_buttons and "下一页" in [btn.text for btn in next_page_buttons]:
+                        next_page_buttons[-1].click()
+                        time.sleep(3)
+                        # 获取新页面的数据并添加到 item_df
+                        new_page_df = get_table_data(div)
+                        item_df = pd.concat([item_df, new_page_df], ignore_index=True)
+                    else:
+                        break  # 如果没有更多页，结束循环
+
+                if first_satisfied and not all_satisfied:
+                    continue
+
+                if first_satisfied and all_satisfied:
                     if len(item_df) <= 2:
                         print(f'processing {item_df.iloc[0, 0]}')
-                        break
+                        pass
                     else:
                         columns_to_format = [col for col in item_df.columns if col not in ['代码', '名称', '涨跌幅']]
                         for col in columns_to_format:
                             item_df[col] = item_df[col].apply(format_decimal)
-                        value_1 = item_df.iloc[i + 1]["代码"]
-                        value_2 = item_df.iloc[i + 1]["最新价"]
-                        results.append((value_1, value_2))
-                        break  # 如果条件满足，跳出循环
 
-                # 检查是否有下一页，并翻页
-                next_page_buttons = div.find_elements(By.CSS_SELECTOR, "div.pages a:not(.pagedisabled)")
-                all_satisfied = True
-                if next_page_buttons and "下一页" in [btn.text for btn in next_page_buttons]:
-                    next_page_buttons[-1].click()
-                    time.sleep(3)
-                    # 获取新页面的数据并添加到 item_df
-                    new_page_df = get_table_data(div)
-                    item_df = pd.concat([item_df, new_page_df], ignore_index=True)
-                else:
-                    break  # 如果没有更多页，结束循环
+                        # Sort the dataframe
+                        item_df = item_df.sort_values(
+                            by=["成交量", "代码"])  # assuming 最新价 is the second last column and 代码 is the first column
+                        item_df = item_df.reset_index(drop=True)
 
-            if first_satisfied and not all_satisfied:
-                continue
-
-            if first_satisfied and all_satisfied:
-                if len(item_df) <= 2:
-                    print(f'processing {item_df.iloc[0, 0]}')
-                    pass
-                else:
-                    columns_to_format = [col for col in item_df.columns if col not in ['代码', '名称', '涨跌幅']]
-                    for col in columns_to_format:
-                        item_df[col] = item_df[col].apply(format_decimal)
-
-                    # Sort the dataframe
-                    item_df = item_df.sort_values(
-                        by=["成交量", "代码"])  # assuming 最新价 is the second last column and 代码 is the first column
-                    item_df = item_df.reset_index(drop=True)
-
-                    # Extract value_1 and value_2
-                    for i, row in item_df.iterrows():
-                        if (len(row["代码"]) == 3 or len(row["代码"]) == 2) and row["代码"][:-1].isalpha() and \
-                                row["代码"][-1].isdigit():
-                            print(
-                                f'item_df for {item_df.iloc[0, 0]} and shape for {item_df.shape} and length: {len(item_df)}')
-                            if i + 1 < len(item_df) and item_df.iloc[i + 1]["成交量"] == row["成交量"]:
-                                value_1 = item_df.iloc[i + 1]["代码"]
-                                value_2 = item_df.iloc[i + 1]["最新价"]
-                                results.append((value_1, value_2))
-                                break
+                        # Extract value_1 and value_2
+                        for i, row in item_df.iterrows():
+                            if (len(row["代码"]) == 3 or len(row["代码"]) == 2) and row["代码"][:-1].isalpha() and \
+                                    row["代码"][-1].isdigit():
+                                print(
+                                    f'item_df for {item_df.iloc[0, 0]} and shape for {item_df.shape} and length: {len(item_df)}')
+                                if i + 1 < len(item_df) and item_df.iloc[i + 1]["成交量"] == row["成交量"]:
+                                    value_1 = item_df.iloc[i + 1]["代码"]
+                                    value_2 = item_df.iloc[i + 1]["最新价"]
+                                    results.append((value_1, value_2))
+                                    break
+            else:
+                driver.close()
+                # 去重处理
+                unique_results = list(set(results))
+                return unique_results
 
     driver.close()
     # 去重处理
@@ -255,7 +262,15 @@ def get_table_data(div):
     if not all_data or not columns:
         return pd.DataFrame()
 
-    item_df = pd.DataFrame(all_data, columns=columns)
+    try:
+        # 尝试创建DataFrame
+        item_df = pd.DataFrame(all_data, columns=columns)
+    except ValueError as e:
+        # 捕获ValueError异常并记录日志
+        logging.error("Error creating DataFrame: %s", e)
+        # 返回一个空的DataFrame或者执行其他错误处理逻辑
+        return pd.DataFrame()
+
     item_df = item_df.dropna(how='all')
 
     return item_df
