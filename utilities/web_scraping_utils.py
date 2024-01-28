@@ -50,7 +50,7 @@ def test_link(url):
         print(f'Warning: {url} is not accessible. Status code: {response.status_code}')
 
 
-def get_latest_price(code):
+def get_latest_price(code, driver=None):
     sina_url, shangjia_url = get_urls(code)
     price = None
 

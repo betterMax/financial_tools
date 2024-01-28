@@ -8,7 +8,7 @@ from utilities.data_utils import update_prices
 from utilities.web_scraping_utils import get_latest_price
 
 
-def run(input_path, output_path, mode):
+def run(input_path, output_path, mode, results):
     wb_input, ws_input, wb_output, ws_output = load_workbooks(input_path, output_path)
 
     relation_dict = {'A': 'D', 'B': 'E', 'C': 'F'}
@@ -17,7 +17,7 @@ def run(input_path, output_path, mode):
     sync_and_clear_extra_data(ws_input, ws_output, columns, relation_dict)
 
     df = create_dataframe_from_columns(ws_output, columns, relation_dict)
-    update_prices(df, get_latest_price, ws_output)
+    update_prices(df, get_latest_price, ws_output, results=results)
 
     save_workbooks(wb_input, wb_output, input_path, output_path)
 

@@ -29,7 +29,7 @@ def main():
         elif task == '1':
             input_path = Input_Path
             output_path = Output_Path
-            update_qihuo_price.run(input_path, output_path, mode)
+            update_qihuo_price.run(input_path, output_path, mode, results)
         elif task == '3':
             input_path = Input_Path
             output_path = Output_Path
