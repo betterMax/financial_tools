@@ -42,6 +42,10 @@ def run(input_path, output_path):
     df1 = df1.reset_index().rename(columns={'index': '成功'})
     df2 = df2.reset_index().rename(columns={'index': '总数'})
     df3 = df3.reset_index().rename(columns={'index': '总收益'})
+    df3_new = df3.set_index(df3.columns[0]).div(df2.set_index(df2.columns[0]))
+    df3_new = df3_new.astype(float).round(2)
+    print(f'df3_new: {df3_new.info()}')
+    df3_new = df3_new.rename_axis(index={'总收益': '平均收益'})
 
     # 对第一个DataFrame进行扩充，确保行和列的顺序与第二个和第三个DataFrame一致
     df1_expanded_correctly = df1.set_index('成功').reindex(df2.set_index(df2.columns[0]).index).reset_index()
@@ -86,7 +90,7 @@ def run(input_path, output_path):
     df3 = df3.set_index('总收益')
 
     # 第五步：调整 DataFrame 在列表中的顺序
-    all_new_dfs = [df_fraction, df1_expanded_correctly, df2, df3, df_decimal, df6, df7]
+    all_new_dfs = [df_fraction, df7, df3_new, df1_expanded_correctly, df2, df_decimal, df6]
     # all_new_dfs.insert(0, all_new_dfs.pop(3))  # 将第四个元素移动到第一个位置
 
     # 第六步：使用阈值筛选第六和第七个 DataFrame 的数据
@@ -109,9 +113,10 @@ def run(input_path, output_path):
     merged_df = pd.merge(df6_filtered, df7_filtered, on='组合', how='outer', suffixes=('_成功率', '_收益'))
     merged_df.sort_values('组合', ascending=False, inplace=True)
     merged_df.set_index('组合', inplace=True)
+    merged_df.dropna(how='any', inplace=True)
     print(f'all_new_dfs: {all_new_dfs[0].shape},{all_new_dfs[1].shape},{all_new_dfs[2].shape}',
           f'{all_new_dfs[3].shape},{all_new_dfs[4].shape},{all_new_dfs[5].shape},{all_new_dfs[6].shape}'
-          f'; merged_df: {merged_df.shape}')
+          f' merged_df: {merged_df.shape}')
 
     # 保存所有 new_df 到Excel文件
     save_new_dfs_to_excel(all_new_dfs, merged_df, output_path)

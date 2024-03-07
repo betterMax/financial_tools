@@ -111,7 +111,7 @@ def process_data_blocks(dataframes):
                 df = df.iloc[1:]
 
             # 移除以 "Unnamed" 开头的列
-            df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+            # df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 
             # 移除完全为空的列
             df = df.dropna(axis=1, how='all')

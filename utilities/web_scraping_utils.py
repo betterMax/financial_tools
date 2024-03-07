@@ -136,11 +136,19 @@ def extract_data_with_refined_trim():
     # 获取所有的导航按钮
     nav_buttons = driver.find_elements(By.CSS_SELECTOR, "ul li a[id^='tab_switch_']")
 
-    for index, btn in enumerate(nav_buttons):
+    # 创建一个索引列表来表示你想要的顺序
+    desired_order = [0, 1, 2, 4, 3]
+    for index in desired_order:
+        btn = nav_buttons[index]  # 根据所需顺序获取按钮
         if index != 0:  # 如果不是第一页，则点击并等待
             btn.click()
             # 等待页面加载完成，此处增加固定等待时间，例如5秒
             time.sleep(3)
+    # for index, btn in enumerate(nav_buttons):
+    #     if index != 0:  # 如果不是第一页，则点击并等待
+    #         btn.click()
+    #         # 等待页面加载完成，此处增加固定等待时间，例如5秒
+    #         time.sleep(3)
 
         print(f'Processing page {index} - {btn.text if index != 0 else "首页"}')
 
