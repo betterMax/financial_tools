@@ -1,10 +1,13 @@
 from tasks import update_qihuo_price, update_qihuo_main, update_stock_price, update_qihuo_history
 from config import Input_Path, Output_Path
 import time
+from datetime import datetime
 
 
 def main():
     # 程序开始时记录时间
+    current_date_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    print(f'Start the new task -- {current_date_time}')
     start_time = time.time()
     results = []
     # 询问用户要运行哪些任务，并获取逗号分隔的任务编号

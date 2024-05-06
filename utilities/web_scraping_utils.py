@@ -10,6 +10,7 @@ import time
 from tqdm import tqdm
 from urllib.parse import quote
 import logging
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 
 def init_chrome():
@@ -27,20 +28,31 @@ def init_chrome():
 
 def get_urls(code, test_links=False):
     if code != 0:
-        if code[:2] == 'SI':
-            sina_url = f'https://finance.sina.com.cn/futures/quotes/gfex/{code}.shtml'
-            shangjia_url = f'https://www.shangjia.com/qihuo/{code.lower()}/qixianjiegou'
+        if type(code) == list:
+            code = code[0]
         else:
-            sina_url = f'https://finance.sina.com.cn/futures/quotes/{code}.shtml'
-            shangjia_url = f'https://www.shangjia.com/qihuo/{code.lower()}/qixianjiegou'
-
-        if test_links:
-            test_link(sina_url)
-            test_link(shangjia_url)
-
-        return sina_url, shangjia_url
+            pass
     else:
         return None, None
+
+    if code[:2] == 'SI':
+        sina_url = f'https://finance.sina.com.cn/futures/quotes/gfex/{code}.shtml'
+        shangjia_url = f'https://www.shangjia.com/qihuo/{code.lower()}/qixianjiegou'
+        eastmoney_url = f'https://quote.eastmoney.com/qihuo/{code.lower()}.html'
+        baidu_url1 = f'https://gushitong.baidu.com/futures/ab-{code.lower()}'
+    else:
+        sina_url = f'https://finance.sina.com.cn/futures/quotes/{code}.shtml'
+        shangjia_url = f'https://www.shangjia.com/qihuo/{code.lower()}/qixianjiegou'
+        eastmoney_url = f'https://quote.eastmoney.com/qihuo/{code.lower()}.html'
+        baidu_url1 = f'https://gushitong.baidu.com/futures/ab-{code.lower()}'
+
+    if test_links:
+        test_link(sina_url)
+        test_link(shangjia_url)
+        test_link(eastmoney_url)
+        test_link(baidu_url1)
+
+    return sina_url, shangjia_url, eastmoney_url, baidu_url1
 
 
 def test_link(url):
@@ -51,7 +63,7 @@ def test_link(url):
 
 
 def get_latest_price(code, driver=None):
-    sina_url, shangjia_url = get_urls(code)
+    sina_url, shangjia_url, eastmoney_url, baidu_url = get_urls(code)
     price = None
 
     # 创建一个chrome浏览器的驱动，设置为无头模式
@@ -69,7 +81,7 @@ def get_latest_price(code, driver=None):
         driver.get(sina_url)
 
         # 等待JavaScript加载完成
-        driver.implicitly_wait(5)
+        # driver.implicitly_wait(5)
 
         # 提取价格
         price_tag = driver.find_element(By.CSS_SELECTOR, 'td[class*="price"]')
@@ -119,7 +131,7 @@ def extract_data_with_refined_trim():
     parent_directory = os.path.dirname(current_directory)
     os.environ["PATH"] += os.pathsep + parent_directory
     chrome_options = Options()
-    chrome_options.add_argument('--headless')  # 注释这行以便观察
+    # chrome_options.add_argument('--headless')  # 注释这行以便观察
     driver = webdriver.Chrome(options=chrome_options)
 
     base_url = "http://vip.stock.finance.sina.com.cn/quotes_service/view/qihuohangqing.html"
@@ -307,3 +319,144 @@ def get_stock_latest_price(driver, code):
         print(f"Error: {e}")
 
     return price_text
+
+
+# 根据不同的特征进行爬取
+def fetch_price_general(driver, url, selector, selector_type):
+    start_time = time.time()  # 开始计时
+    try_attempts = 2  # 尝试次数
+    for attempt in range(try_attempts):
+        try:
+            if attempt > 0:  # 如果不是第一次尝试，先刷新页面
+                print(f"Attempting to refresh and retry: {url}")
+                driver.refresh()
+                time.sleep(3)  # 给页面一些额外的时间来加载
+
+            driver.get(url)
+            # 等待JavaScript加载完成
+            driver.implicitly_wait(5)
+            if selector_type == "css":
+                element = driver.find_element(By.CSS_SELECTOR, selector)
+            elif selector_type == "xpath":
+                element = driver.find_element(By.XPATH, selector)
+            else:
+                print(f"Unsupported selector type: {selector_type}")
+                return None, None
+
+            price_text = element.text
+            if price_text:
+                price = round(float(price_text.replace(',', '')), 2)  # 转换为浮点数并四舍五入到两位小数
+                end_time = time.time()
+                elapsed_time = end_time - start_time  # 计算耗时
+                print(f"价格来源：{url}，价格：{price:.2f}，耗时：{elapsed_time:.2f}秒，开始时间：{start_time:.2f}秒, 结束时间：{end_time:.2f}秒")  # 打印信息
+                return price, elapsed_time  # 返回价格和耗时
+        except Exception as e:
+            print(f"Error fetching from {url}")
+    return None, None
+
+
+# 某一个具体的爬取任务
+def fetch_price_parallel(url, selector, selector_type):
+    # 假设这里包含了webdriver的初始化逻辑，比如调用init_chrome()，或者直接在这里初始化
+    driver = init_chrome()
+    price, elapsed_time = fetch_price_general(driver, url, selector, selector_type)
+    driver.quit()  # 确保每次使用后关闭webdriver
+    return url, price, elapsed_time
+
+
+# 针对第一个标的进行测试，选择爬取的优先级
+def fetch_prices_for_code(code):
+    urls_order = ["sina", "shangjia", "eastmoney", "baidu"]
+    urls = get_urls(code)
+    initial_code_results = parallel_fetch_prices(urls)
+    print(f'{code}: {initial_code_results}')
+
+    # 过滤出有效的结果（价格不为None且不为'--'）
+    valid_results = [result for result in initial_code_results if result[1] is not None and result[1] != '--']
+
+    # 找出最常见的价格
+    prices = [result[1] for result in valid_results]
+    common_prices = [price for price in set(prices) if prices.count(price) > 1]
+
+    # 只保留具有最常见价格的结果，并按爬取耗时排序
+    sorted_valid_results = sorted([result for result in valid_results if result[1] in common_prices],
+                                  key=lambda x: x[2])
+
+    # 使用url_to_source_name转换URL为来源简称，再获取索引
+    return [urls_order.index(url_to_source_name(result[0])) for result in sorted_valid_results if url_to_source_name(result[0]) in urls_order], common_prices
+
+
+def fetch_for_remaining_codes(code_list, valid_methods_order):
+    final_prices = {}
+    for code in code_list[1:]:  # Skip the first code, as it's already processed
+        urls = get_urls(code)  # 为当前code生成URLs
+        for method_index in valid_methods_order:  # 遍历有效方法的索引
+            url = urls[method_index]  # 根据有效方法的索引选择URL
+            selector, selector_type = method_to_details(url)  # 根据URL确定选择器和类型
+            print(f"Fetching price for {code} from {url} with selector: {selector} and selector_type: {selector_type}")
+            driver = init_chrome()
+            price, elapsed_time = fetch_price_general(driver, url, selector, selector_type)
+            driver.quit()
+            if price is not None and price != '--':
+                final_prices[code] = price
+                print(f"Code: {code}, Price: {price} using {url}")
+                break  # 成功获取到价格后跳出循环
+
+    return final_prices
+
+
+# 获取所有方案的爬取结果
+def parallel_fetch_prices(urls):
+    with ProcessPoolExecutor() as executor:
+        futures = []
+        for url in urls:
+            selector, selector_type = method_to_details(url)  # 确定选择器和类型
+            if selector and selector_type:  # 确保它们都不是None
+                futures.append(executor.submit(fetch_price_parallel, url, selector, selector_type))
+
+        results = []
+        for future in as_completed(futures):
+            try:
+                results.append(future.result())
+            except Exception as e:
+                print(f"Parallel fetch encountered an error: {e}")
+        return results
+
+
+# 根据链接选择爬取特征
+def method_to_details(url):
+    # 根据get_urls函数返回的URL顺序确定选择器和选择器类型
+    urls_order = ["sina", "shangjia", "eastmoney", "baidu"]
+    css_selectors = ['td[class*="price"]',
+                     '//span[text()="收盘价"]/following-sibling::strong',
+                     '//div[@class="zxj"]/span/span',# 'div.zxj > span > span.price_up',
+                     'span.b_price']
+    selector_types = ['css', 'xpath', 'xpath', 'css']
+
+    # 确定URL对应的索引
+    index = None
+    for i, key in enumerate(urls_order):
+        if key in url:
+            index = i
+            break
+
+    if index is not None:
+        # 返回对应的选择器和选择器类型
+        return css_selectors[index], selector_types[index]
+    else:
+        # 如果URL不匹配，返回None
+        return None, None
+
+
+# 根据链接选择类别
+def url_to_source_name(url):
+    if "sina.com.cn" in url:
+        return "sina"
+    elif "shangjia.com" in url:
+        return "shangjia"
+    elif "eastmoney.com" in url:
+        return "eastmoney"
+    elif "gushitong.baidu.com" in url:
+        return "baidu"
+    else:
+        return None

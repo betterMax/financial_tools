@@ -1,10 +1,5 @@
-# from openpyxl import load_workbook
-# import pandas as pd
-# from utilities.web_scraping_utils import get_latest_price
-
-
 from utilities.excel_utils import load_workbooks, save_workbooks, sync_and_clear_extra_data, create_dataframe_from_columns
-from utilities.data_utils import update_prices
+from utilities.data_utils import update_prices, update_prices_copy
 from utilities.web_scraping_utils import get_latest_price
 
 
@@ -14,11 +9,11 @@ def run(input_path, output_path, mode, results):
     relation_dict = {'A': 'D', 'B': 'E', 'C': 'F'}
     # columns = ['A', 'B'] if mode == 'work' else ['A', 'B', 'C']
     if mode == 'work':
-        columns = ['A', 'B', 'C']
+        columns = ['A', 'B']
     elif mode == 'urgent':
         columns = ['B']  # 只处理 B 列
     else:
-        columns = ['A', 'B']  # 默认或其他模式
+        columns = ['A', 'B', 'C']  # 默认或其他模式
 
     sync_and_clear_extra_data(ws_input, ws_output, columns, relation_dict)
 

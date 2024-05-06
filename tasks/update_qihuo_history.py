@@ -100,7 +100,6 @@ def run(input_path, output_path):
     # 筛选第六个 DataFrame
     df6_filtered = df6[df6 > threshold_df6].stack().reset_index()
     df6_filtered.columns = ['行名', '列名', '值']
-
     # 筛选第七个 DataFrame
     df7_filtered = df7[df7 > threshold_df7].stack().reset_index()
     df7_filtered.columns = ['行名', '列名', '值']
