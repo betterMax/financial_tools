@@ -62,8 +62,8 @@ def find_data(df, row_name, column_name):
 
 
 def split_excel_by_blank_rows(file_path, sheet_name):
-    # Excel列名从A开始，因此"Q"列是第17列，但是在 pandas 中列索引从0开始计数
-    start_col_index = 16  # "Q"列的索引
+    # Excel列名从A开始，因此"X"列是第24列，但是在 pandas 中列索引从0开始计数
+    start_col_index = 23  # "X"列的索引
 
     # 读取从"Q"列开始的所有列
     df = pd.read_excel(file_path, sheet_name=sheet_name, header=None, index_col=None,
@@ -126,54 +126,13 @@ def process_data_blocks(dataframes):
 
     return processed_blocks
 
-
-# def save_new_dfs_to_excel(new_dfs, conclusions, file_path):
-#     try:
-#         df = pd.read_excel(file_path)
-#         # 检查Q和R列是否存在，如果存在则清除除标题外的所有数据
-#         if '历史' in df.columns :
-#             df.loc[0:, '代码'] = pd.NA  # 清除Q列除了第一行外的所有数据
-#
-#         startrow = 1
-#         startcol = 20  # "U"列是第21列，但索引从0开始，所以用20
-#
-#         # 循环处理每个新的DataFrame
-#         for new_df in new_dfs:
-#             # 直接写入新数据，从"U"列开始
-#             new_df.to_excel(writer, sheet_name='Sheet1', startrow=startrow, startcol=startcol, index=True)
-#
-#             # 更新起始行位置
-#             startrow += len(new_df.index) + 6  # 为下一个数据块留出空间
-#
-#         # 循环处理结论里的DataFrame
-#         conclusions[0].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=30, index=True)
-#         conclusions[1].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=32, index=True)
-#
-#     df.to_excel(file_path, index=False)
-#     with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
-#         startrow = 1
-#         startcol = 20  # "U"列是第21列，但索引从0开始，所以用20
-#
-#         # 循环处理每个新的DataFrame
-#         for new_df in new_dfs:
-#             # 直接写入新数据，从"U"列开始
-#             new_df.to_excel(writer, sheet_name='Sheet1', startrow=startrow, startcol=startcol, index=True)
-#
-#             # 更新起始行位置
-#             startrow += len(new_df.index) + 6  # 为下一个数据块留出空间
-#
-#         # 循环处理结论里的DataFrame
-#         conclusions[0].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=30, index=True)
-#         conclusions[1].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=32, index=True)
-
-
 def save_new_dfs_to_excel(new_dfs, conclusions, file_path):
     # 尝试读取现有数据
     try:
         df = pd.read_excel(file_path)
 
         # 清除指定列的数据
-        for col_index in range(20, 35):  # 从第21列到第35列（"U"到"AI"）
+        for col_index in range(27, 42):  # 从第21列到第35列（"U"到"AI"）
             if col_index < len(df.columns):
                 df.iloc[0:, col_index] = pd.NA  # 从第二行开始清除数据
 
@@ -187,7 +146,7 @@ def save_new_dfs_to_excel(new_dfs, conclusions, file_path):
     # 写入新数据
     with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
         startrow = 0
-        startcol = 20  # "U"列
+        startcol = 27     # "AB"列
 
         # 循环处理每个新的DataFrame
         for new_df in new_dfs:
@@ -195,7 +154,7 @@ def save_new_dfs_to_excel(new_dfs, conclusions, file_path):
             startrow += len(new_df.index) + 6  # 为下一个数据块留出空间
 
         # 写入结论里的DataFrame
-        conclusions.to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=30, index=True)
+        conclusions.to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=38, index=True)
         # conclusions[0].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=30, index=True)
         # conclusions[1].to_excel(writer, sheet_name='Sheet1', startrow=0, startcol=32, index=True)
 

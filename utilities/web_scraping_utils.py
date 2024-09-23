@@ -156,11 +156,6 @@ def extract_data_with_refined_trim():
             btn.click()
             # 等待页面加载完成，此处增加固定等待时间，例如5秒
             time.sleep(3)
-    # for index, btn in enumerate(nav_buttons):
-    #     if index != 0:  # 如果不是第一页，则点击并等待
-    #         btn.click()
-    #         # 等待页面加载完成，此处增加固定等待时间，例如5秒
-    #         time.sleep(3)
 
         print(f'Processing page {index} - {btn.text if index != 0 else "首页"}')
 

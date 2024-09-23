@@ -1,5 +1,10 @@
-from tasks import update_qihuo_price, update_qihuo_main, update_stock_price, update_qihuo_history
-from config import Input_Path, Output_Path
+from tasks import (update_qihuo_price,
+                   update_qihuo_main,
+                   update_stock_price,
+                   update_qihuo_history,
+                   check_similarities,
+                   overall_similarities)
+from config import Input_Path, Output_Path, FutureHistoryDatabase_Path
 import time
 from datetime import datetime
 
@@ -11,11 +16,11 @@ def main():
     start_time = time.time()
     results = []
     # 询问用户要运行哪些任务，并获取逗号分隔的任务编号
-    tasks_str = input("请选择要执行的任务（1-任务1，2-任务2，3-任务3，4-任务4，all-全部任务。多个任务请用逗号分隔）：")
+    tasks_str = input("请选择要执行的任务（1-任务1，2-任务2，3-任务3，4-任务4，5-相似性检查，6-整体相似性，all-全部任务。多个任务请用逗号分隔）：")
 
     # 如果用户输入 'all'，则运行所有任务
     if tasks_str.lower() == 'all':
-        tasks = ['1', '2', '3', '4']
+        tasks = ['1', '2', '3', '4', '5', '6']
     else:
         # 根据逗号分隔任务编号，并移除可能存在的空格
         tasks = [task.strip() for task in tasks_str.split(',')]
@@ -41,7 +46,14 @@ def main():
             input_path = Input_Path
             output_path = Output_Path
             update_qihuo_history.run(input_path, output_path)
-
+        elif task == '5':
+            input_path = Input_Path
+            output_path = Output_Path
+            future_hisotry_database_path = FutureHistoryDatabase_Path
+            check_similarities.run(input_path, output_path, future_hisotry_database_path)
+        elif task == '6':
+            future_hisotry_database_path = FutureHistoryDatabase_Path
+            overall_similarities.run(future_hisotry_database_path)
         else:
             print(f"无效的选择：{task}")
     # 程序结束时记录时间
@@ -56,6 +68,7 @@ def main():
 
     # 打印结果
     print(f"运行时间：{minutes}分{seconds}秒")
+
 
 if __name__ == '__main__':
     main()
