@@ -1,0 +1,52 @@
+# 期货数据管理系统配置文件
+
+# Flask应用配置
+flask:
+  SECRET_KEY: "your_secret_key_here"
+  SQLALCHEMY_DATABASE_URI: "sqlite:///financial_tools.db"  # 数据库URI，可以替换为MySQL或PostgreSQL
+  SQLALCHEMY_TRACK_MODIFICATIONS: false
+  DEBUG: true  # 调试模式
+  TESTING: false  # 测试模式
+
+# 数据库配置
+database:
+  backup_dir: "data/backup"  # 数据库备份目录
+  migration_dir: "database/migrations"  # 数据库迁移脚本目录
+
+# 日志配置
+logging:
+  version: 1
+  formatters:
+    default:
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    console:
+      class: logging.StreamHandler
+      level: INFO
+      formatter: default
+      stream: ext://sys.stdout
+    file:
+      class: logging.FileHandler
+      level: INFO
+      formatter: default
+      filename: "logs/financial_tools.log"
+  loggers:
+    app:
+      level: INFO
+      handlers: [console, file]
+      propagate: false
+  root:
+    level: INFO
+    handlers: [console, file]
+
+# 爬虫配置
+scraper:
+  future_daily_url: "http://121.37.80.177/fees.html"  # 期货每日数据爬取URL
+  headers:
+    User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+
+# 定时任务配置
+scheduler:
+  future_info_update: "0 19 * * *"  # 每天19:00更新期货基础信息，cron表达式
+  transaction_backup: "0 23 * * *"  # 每天23:00备份交易记录
+  latest_price_update: "*/30 9-15 * * 1-5"  # 工作日9:00-15:00每30分钟更新一次最新价格 
