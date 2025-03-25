@@ -1,5 +1,6 @@
 from utilities.web_scraping_utils import fetch_prices_for_code
 
+
 def get_price_with_error_handling(get_price_func, code, driver=None):
     try:
         if driver:
@@ -21,7 +22,6 @@ def update_prices(df, get_price_func, ws_output, driver=None, results=None):
     # 将 results 转换为字典以便快速查找
     results_dict = dict(results) if results else {}
 
-
     # 删除重复的代码，但先记录每个代码对应的所有位置
     code_positions = df.groupby('code')['position'].apply(list).to_dict()
 
@@ -32,6 +32,10 @@ def update_prices(df, get_price_func, ws_output, driver=None, results=None):
         if code in results_dict:
             price = results_dict[code]
             print(f'Price for {code} is {price} already in results')
+        elif code == "":
+            continue
+        elif code == 0:
+            continue
         else:
             # 如果没有，使用爬虫获取价格
             print(f'Updating price for {code} with clawler')
@@ -73,6 +77,10 @@ def update_prices_copy(df, get_price_func, ws_output, driver=None, results=None)
         if code in results_dict:
             price = results_dict[code]
             print(f'Price for {code} is {price} already in results')
+        elif code == "":
+            continue
+        elif code == 0:
+            continue
         else:
             # 如果没有，使用爬虫获取价格
             print(f'Updating price for {code} with clawler')

@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 
 
-def calculate():
+def calculate(entry1, entry2, result_label):
     try:
         num1 = float(entry1.get())
         num2 = float(entry2.get())
@@ -19,40 +19,45 @@ def calculate():
 
 
 # 绑定回车键事件
-def on_enter(event):
-    calculate()
+def on_enter(event, entry1, entry2, result_label):
+    calculate(entry1, entry2, result_label)
 
 
-# 创建主窗口
-root = tk.Tk()
-root.title("简单计算器")
-root.geometry("300x300")
+def run_calculator():
+    # 创建主窗口
+    root = tk.Tk()
+    root.title("简单计算器")
+    root.geometry("300x300")
 
-# 窗口始终置顶
-root.attributes('-topmost', True)
+    # 窗口始终置顶
+    root.attributes('-topmost', True)
 
-# 标签和输入框
-label1 = tk.Label(root, text="请输入第一个数字:")
-label1.pack(pady=5)
-entry1 = tk.Entry(root)
-entry1.pack(pady=5)
+    # 标签和输入框
+    label1 = tk.Label(root, text="请输入第一个数字:")
+    label1.pack(pady=5)
+    entry1 = tk.Entry(root)
+    entry1.pack(pady=5)
 
-label2 = tk.Label(root, text="请输入第二个数字:")
-label2.pack(pady=5)
-entry2 = tk.Entry(root)
-entry2.pack(pady=5)
+    label2 = tk.Label(root, text="请输入第二个数字:")
+    label2.pack(pady=5)
+    entry2 = tk.Entry(root)
+    entry2.pack(pady=5)
 
-# 绑定回车键到输入框
-entry1.bind("<Return>", on_enter)
-entry2.bind("<Return>", on_enter)
+    # 计算按钮
+    calc_button = tk.Button(root, text="计算", command=lambda: calculate(entry1, entry2, result_label))
+    calc_button.pack(pady=10)
 
-# 计算按钮
-calc_button = tk.Button(root, text="计算", command=calculate)
-calc_button.pack(pady=10)
+    # 结果标签
+    result_label = tk.Label(root, text="结果: ")
+    result_label.pack(pady=5)
 
-# 结果标签
-result_label = tk.Label(root, text="结果: ")
-result_label.pack(pady=5)
+    # 绑定回车键到输入框
+    entry1.bind("<Return>", lambda event: on_enter(event, entry1, entry2, result_label))
+    entry2.bind("<Return>", lambda event: on_enter(event, entry1, entry2, result_label))
+
+    root.mainloop()
+
 
 # 运行主循环
-root.mainloop()
+if __name__ == '__main__':
+    run_calculator()

@@ -39,20 +39,20 @@ def get_urls(code, test_links=False):
         sina_url = f'https://finance.sina.com.cn/futures/quotes/gfex/{code}.shtml'
         shangjia_url = f'https://www.shangjia.com/qihuo/{code.lower()}/qixianjiegou'
         eastmoney_url = f'https://quote.eastmoney.com/qihuo/{code.lower()}.html'
-        baidu_url1 = f'https://gushitong.baidu.com/futures/ab-{code.lower()}'
+        baidu_url = f'https://gushitong.baidu.com/futures/ab-{code.lower()}'
     else:
         sina_url = f'https://finance.sina.com.cn/futures/quotes/{code}.shtml'
         shangjia_url = f'https://www.shangjia.com/qihuo/{code.lower()}/qixianjiegou'
         eastmoney_url = f'https://quote.eastmoney.com/qihuo/{code.lower()}.html'
-        baidu_url1 = f'https://gushitong.baidu.com/futures/ab-{code.lower()}'
+        baidu_url = f'https://gushitong.baidu.com/futures/ab-{code.lower()}'
 
     if test_links:
         test_link(sina_url)
         test_link(shangjia_url)
         test_link(eastmoney_url)
-        test_link(baidu_url1)
+        test_link(baidu_url)
 
-    return sina_url, shangjia_url, eastmoney_url, baidu_url1
+    return sina_url, shangjia_url, eastmoney_url, baidu_url
 
 
 def test_link(url):
@@ -60,6 +60,8 @@ def test_link(url):
 
     if response.status_code != 200:
         print(f'Warning: {url} is not accessible. Status code: {response.status_code}')
+    else:
+        print(f'{url} is accessible. Status code: {response.status_code}')
 
 
 def get_latest_price(code, driver=None):
@@ -252,43 +254,60 @@ def extract_data_with_refined_trim():
 
 
 def get_table_data(div):
-    # 获取列名
-    thead_tr = div.find_element(By.CSS_SELECTOR, "thead tr")
-    columns_th = [th.text for th in thead_tr.find_elements(By.TAG_NAME, "th") if th.text != "股吧"]
-    columns_td = [td.text for td in thead_tr.find_elements(By.TAG_NAME, "td") if td.text != "股吧"]
-    columns = columns_th + columns_td
-
-    all_data = []
-    trs = div.find_elements(By.CSS_SELECTOR, "tbody tr")
-    for tr in trs:
-        tds = tr.find_elements(By.TAG_NAME, "td")
-        ths = tr.find_elements(By.TAG_NAME, "th")
-        row_data_th = [th.text for th in ths]
-        row_data_td = [td.text for td in tds]
-        row_data = row_data_th + row_data_td
-
-        # 清理并匹配列长度
-        row_data = [data for data in row_data if data]
-        if len(row_data) > len(columns):
-            row_data = row_data[:len(columns)]
-        all_data.append(row_data)
-
-    # 检查是否有数据
-    if not all_data or not columns:
-        return pd.DataFrame()
-
     try:
-        # 尝试创建DataFrame
+        # 获取列名
+        thead_tr = div.find_element(By.CSS_SELECTOR, "thead tr")
+        columns_th = [th.text for th in thead_tr.find_elements(By.TAG_NAME, "th") if th.text != "股吧"]
+        columns_td = [td.text for td in thead_tr.find_elements(By.TAG_NAME, "td") if td.text != "股吧"]
+        columns = columns_th + columns_td
+        
+        # 添加列名检查
+        if not columns:
+            logging.warning("No columns found in the table")
+            return pd.DataFrame()
+
+        all_data = []
+        trs = div.find_elements(By.CSS_SELECTOR, "tbody tr")
+        
+        # 添加行数据检查
+        if not trs:
+            logging.warning("No rows found in the table")
+            return pd.DataFrame()
+
+        for tr in trs:
+            tds = tr.find_elements(By.TAG_NAME, "td")
+            ths = tr.find_elements(By.TAG_NAME, "th")
+            row_data_th = [th.text for th in ths]
+            row_data_td = [td.text for td in tds]
+            row_data = row_data_th + row_data_td
+
+            # 清理并匹配列长度
+            row_data = [data for data in row_data if data]
+            if len(row_data) > len(columns):
+                row_data = row_data[:len(columns)]
+            elif len(row_data) < len(columns):
+                # 如果行数据少于列数，用空值填充
+                row_data.extend([''] * (len(columns) - len(row_data)))
+            
+            all_data.append(row_data)
+
+        # 添加数据检查
+        if not all_data:
+            logging.warning("No data collected from the table")
+            return pd.DataFrame()
+
+        # 记录数据维度
+        logging.info(f"Creating DataFrame with {len(all_data)} rows and {len(columns)} columns")
+        
+        # 创建DataFrame
         item_df = pd.DataFrame(all_data, columns=columns)
-    except ValueError as e:
-        # 捕获ValueError异常并记录日志
-        logging.error("Error creating DataFrame: %s", e)
-        # 返回一个空的DataFrame或者执行其他错误处理逻辑
+        item_df = item_df.dropna(how='all')
+        
+        return item_df
+
+    except Exception as e:
+        logging.error(f"Error in get_table_data: {str(e)}")
         return pd.DataFrame()
-
-    item_df = item_df.dropna(how='all')
-
-    return item_df
 
 
 def get_stock_latest_price(driver, code):

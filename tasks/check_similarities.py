@@ -14,7 +14,7 @@ def process_operation_reason(reason):
         if "支撑" in reason:
             return ["支撑位真跌破", "支撑位假跌破"]
         elif "压力" in reason:
-            return ["压力位真跌破", "压力位假跌破"]
+            return ["压力位真突破", "压力位假突破"]
     elif "支撑位" in reason:
         return ["趋势真跌破", "趋势假跌破"]
     elif "压力位" in reason:
@@ -48,21 +48,37 @@ def calculate_similarity_for_top_n(similarity_list, top_n):
     return avg_similarity
 
 
-def check_operation_type_count(df, threshold=10):
-    operation_reason_counts = df['操作原因'].value_counts()
+def check_operation_type_count(df, operation_list, threshold=10):
+    # 创建一个新的列来存储匹配到的分类
+    df['匹配分类'] = df['操作原因'].apply(lambda x: [op for op in operation_list if op in x])
+
+    # 删除没有匹配到分类的行
+    df = df[df['匹配分类'].apply(len) > 0]
+
+    # 将所有匹配的分类展开计数
+    from collections import Counter
+    operation_reason_counts = Counter()
+    df['匹配分类'].apply(lambda ops: operation_reason_counts.update(ops))
+
+    # 根据阈值移除数量低于阈值的分类
     for operation_reason, count in operation_reason_counts.items():
         if count < threshold:
-            print(f"操作原因 '{operation_reason}' 的行数少于 {threshold}，已移除。")
-            df = df[df['操作原因'] != operation_reason]
+            print(f"操作原因包含 '{operation_reason}' 的行数少于 {threshold}，已移除。")
+            df = df[df['匹配分类'].apply(lambda ops: operation_reason not in ops)]
+
+    # 移除辅助列
+    df = df.drop(columns=['匹配分类'])
+
     return df
 
 
-def process_and_match(file_path_a, file_path_b, top_3=3, top_5=5):
+def process_and_match(file_path_a, file_path_b, operation_list, top_3=3, top_5=5):
     try:
-        df_a = load_data_source_a(file_path_a)
+        df_a = load_data_source_a(file_path_a)  # 要检验的数据
         df_a = df_a.dropna()
-        df_b = load_data_source_b(file_path_b)
-        df_b = check_operation_type_count(df_b)
+        df_b = load_data_source_b(file_path_b)  # 历史数据
+        df_b = check_operation_type_count(df_b, operation_list)
+        df_b = df_b.iloc[:, :-1] # 不考虑图片那一列
         df_b = df_b.dropna()
 
         if df_a is None or df_b is None:
@@ -92,7 +108,6 @@ def process_and_match(file_path_a, file_path_b, top_3=3, top_5=5):
             if not match_criteria:
                 print(f"跳过无效的操作原因: {operation_reason_a}")
                 continue
-
             matches_in_b = df_b[df_b['操作原因'].isin(match_criteria)]
 
             for _, row_b in matches_in_b.iterrows():
@@ -147,8 +162,8 @@ def process_and_match(file_path_a, file_path_b, top_3=3, top_5=5):
         return None
 
 
-def run(input_path, output_path, future_hisotry_database_path):
-    final_results = process_and_match(input_path, future_hisotry_database_path)
+def run(input_path, output_path, future_hisotry_database_path, operation_list):
+    final_results = process_and_match(input_path, future_hisotry_database_path, operation_list)
 
     if final_results:
         for result in final_results:
