@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}交易汇总详情 - {{ trade.name }} ({{ trade.contract_code }}){% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h4 class="card-title mb-0">交易汇总详情</h4>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">ID</dt>
+                <dd class="col-sm-9">{{ trade.id }}</dd>
+
+                <dt class="col-sm-3">合约代码</dt>
+                <dd class="col-sm-9">{{ trade.contract_code }}</dd>
+
+                <dt class="col-sm-3">名称</dt>
+                <dd class="col-sm-9">{{ trade.name }}</dd>
+
+                <dt class="col-sm-3">账户</dt>
+                <dd class="col-sm-9">{{ trade.account }}</dd>
+
+                <dt class="col-sm-3">开仓时间</dt>
+                <dd class="col-sm-9">{{ trade.open_time.strftime('%Y-%m-%d %H:%M:%S') if trade.open_time else '-' }}</dd>
+
+                <dt class="col-sm-3">平仓时间</dt>
+                <dd class="col-sm-9">{{ trade.close_time.strftime('%Y-%m-%d %H:%M:%S') if trade.close_time else '-' }}</dd>
+
+                <dt class="col-sm-3">持仓方向</dt>
+                <dd class="col-sm-9">{{ '多头' if trade.position_type == 0 else ('空头' if trade.position_type == 1 else '未知') }}</dd>
+
+                <dt class="col-sm-3">持仓手数</dt>
+                <dd class="col-sm-9">{{ trade.position_volume }}</dd>
+
+                <dt class="col-sm-3">合约乘数</dt>
+                <dd class="col-sm-9">{{ trade.contract_multiplier }}</dd>
+
+                <dt class="col-sm-3">持仓成本</dt>
+                <dd class="col-sm-9">{{ '{:,.2f}'.format(trade.past_position_cost) if trade.past_position_cost is not none else '-' }}</dd>
+
+                <dt class="col-sm-3">平均售价</dt>
+                <dd class="col-sm-9">{{ '{:,.2f}'.format(trade.average_sale_price) if trade.average_sale_price is not none else '-' }}</dd>
+
+                <dt class="col-sm-3">单笔收益</dt>
+                <dd class="col-sm-9">{{ '{:,.0f}'.format(trade.single_profit) if trade.single_profit is not none else '-' }}</dd>
+
+                <dt class="col-sm-3">投资收益率</dt>
+                <dd class="col-sm-9">{{ '{:.2%}'.format(trade.investment_profit_rate) if trade.investment_profit_rate is not none else '-' }}</dd>
+
+                <dt class="col-sm-3">持仓天数</dt>
+                <dd class="col-sm-9">{{ trade.holding_days if trade.holding_days is not none else '-' }}</dd>
+
+                <dt class="col-sm-3">年化收益率</dt>
+                <dd class="col-sm-9">{{ '{:.2%}'.format(trade.annual_profit_rate) if trade.annual_profit_rate is not none else '-' }}</dd>
+
+                <dt class="col-sm-3">操作策略</dt>
+                <dd class="col-sm-9">{{ trade.strategy_name or '-' }} (ID: {{ trade.strategy_ids or '-' }})</dd>
+
+                <dt class="col-sm-3">K线形态</dt>
+                <dd class="col-sm-9">{{ trade.candle_pattern or '-' }} (ID: {{ trade.candle_pattern_id or '-' }})</dd>
+
+                <dt class="col-sm-3">长期趋势</dt>
+                <dd class="col-sm-9">{{ trade.long_trend_name or '-' }} (IDs: {{ trade.long_trend_ids or '-' }})</dd>
+
+                <dt class="col-sm-3">中期趋势</dt>
+                <dd class="col-sm-9">{{ trade.mid_trend_name or '-' }} (IDs: {{ trade.mid_trend_ids or '-' }})</dd>
+
+                <dt class="col-sm-3">交易类型</dt>
+                <dd class="col-sm-9">{{ '模拟交易' if trade.trade_type == 0 else ('实盘交易' if trade.trade_type == 1 else '未知') }}</dd>
+
+                <dt class="col-sm-3">换月交易主ID</dt>
+                <dd class="col-sm-9">{{ trade.roll_trade_main_id if trade.roll_trade_main_id is not none else '-' }}</dd>
+
+                <dt class="col-sm-3">信心指数</dt>
+                <dd class="col-sm-9">{{ trade.confidence_index if trade.confidence_index is not none else '-' }}</dd>
+
+                <dt class="col-sm-3">相似度评价</dt>
+                <dd class="col-sm-9">{{ trade.similarity_evaluation or '-' }}</dd>
+
+            </dl>
+        </div>
+        <div class="card-footer text-end">
+            <a href="{{ url_for('trade.index') }}" class=\"btn btn-secondary\">返回列表</a>
+            {# Add Edit button if needed #}
+            {# <a href="{{ url_for('trade.edit', id=trade.id) }}" class="btn btn-primary">编辑</a> #}
+        </div>
+    </div>
+</div>
+{% endblock %}

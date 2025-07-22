@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+
+{% block title %}添加监控记录 - 期货数据管理系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>添加监控记录</h2>
+    <a href="{{ url_for('monitor.index') }}" class="btn btn-secondary">返回列表</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form id="monitor-form" class="needs-validation" novalidate>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="future_info_id" class="form-label">期货品种 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="future_info_id" name="future_info_id" required>
+                        <option value="" selected disabled>请选择期货品种</option>
+                        <!-- 选项将通过JavaScript动态加载 -->
+                    </select>
+                    <div class="invalid-feedback">请选择期货品种</div>
+                </div>
+                 <div class="col-md-6 mb-3">
+                    <label for="contract" class="form-label">合约代码 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="contract" name="contract" required>
+                     <div class="invalid-feedback">请输入合约代码</div>
+                </div>
+            </div>
+             <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="name" class="form-label">名称</label>
+                    <input type="text" class="form-control" id="name" name="name" readonly required>
+                     <div class="invalid-feedback">名称将根据期货品种自动填充</div>
+                </div>
+                 <div class="col-md-6 mb-3">
+                    <label for="market" class="form-label">市场类型</label>
+                    <select class="form-select" id="market" name="market" readonly disabled> <!-- 设置为 readonly 和 disabled -->
+                        <option value="" selected disabled>请选择市场类型</option>
+                        <option value="0">国内</option>
+                        <option value="1">国外</option>
+                    </select>
+                     <div class="invalid-feedback">市场类型将根据期货品种自动填充</div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="status" class="form-label">关注状态</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="0" selected>观察中</option>
+                        <option value="1">重点关注</option>
+                        <option value="2">已触发</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="opportunity" class="form-label">关注原因</label>
+                    <textarea class="form-control" id="opportunity" name="opportunity" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="key_price" class="form-label">关键价格</label>
+                    <input type="number" step="any" class="form-control" id="key_price" name="key_price">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="open_long_price" class="form-label">做多开仓价</label>
+                    <input type="number" step="any" class="form-control" id="open_long_price" name="open_long_price">
+                </div>
+            </div>
+            <div class="row">
+                 <div class="col-md-6 mb-3">
+                    <label for="open_short_price" class="form-label">做空开仓价</label>
+                    <input type="number" step="any" class="form-control" id="open_short_price" name="open_short_price">
+                </div>
+                 <div class="col-md-6 mb-3">
+                    <label for="latest_price" class="form-label">最新价格</label>
+                    <input type="number" step="any" class="form-control" id="latest_price" name="latest_price">
+                </div>
+            </div>
+            <div class="row">
+                 <div class="col-md-6 mb-3">
+                    <label for="open_long_trigger_price" class="form-label">做多触发价</label>
+                    <input type="number" step="any" class="form-control" id="open_long_trigger_price" name="open_long_trigger_price">
+                </div>
+                 <div class="col-md-6 mb-3">
+                    <label for="open_short_trigger_price" class="form-label">做空触发价</label>
+                    <input type="number" step="any" class="form-control" id="open_short_trigger_price" name="open_short_trigger_price">
+                </div>
+            </div>
+             <!-- 可以根据需要添加更多字段 -->
+            <div class="form-group mt-4">
+                <button type="submit" class="btn btn-primary">保存</button>
+                <button type="reset" class="btn btn-secondary">重置</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('monitor-form');
+    const futureSelect = document.getElementById('future_info_id');
+    const contractInput = document.getElementById('contract');
+    const nameInput = document.getElementById('name');
+    const marketSelect = document.getElementById('market');
+
+    // 加载期货品种列表
+    fetch('/api/future_info/list')
+        .then(response => response.json())
+        .then(data => {
+            if (data.code === 0) {
+                data.data.forEach(future => {
+                    const option = document.createElement('option');
+                    option.value = future.id;
+                    option.textContent = `${future.name} (${future.contract_letter})`;
+                    futureSelect.appendChild(option);
+                });
+            } else {
+                console.error('加载期货列表失败:', data.msg);
+            }
+        })
+        .catch(error => console.error('加载期货列表失败:', error));
+
+    // 自动填充名称和市场的函数
+    function fillFutureDetails(futureId, contractCode) {
+        let url = '/monitor/api/future_info/lookup?';
+        if (futureId) {
+            url += `future_info_id=${futureId}`;
+        } else if (contractCode) {
+            url += `contract_code=${contractCode}`;
+        } else {
+            nameInput.value = '';
+            marketSelect.value = '';
+            marketSelect.setAttribute('disabled', ''); // 禁用市场选择
+            return; // 如果两者都为空，则不查询
+        }
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.code === 0 && data.data) {
+                    nameInput.value = data.data.name || '';
+                    marketSelect.value = data.data.market_type !== null ? data.data.market_type.toString() : '';
+                    marketSelect.removeAttribute('disabled'); // 启用市场选择
+                } else {
+                    nameInput.value = '';
+                    marketSelect.value = '';
+                    marketSelect.setAttribute('disabled', ''); // 禁用市场选择
+                    console.warn('未能自动填充期货信息:', data.msg);
+                }
+            })
+            .catch(error => {
+                nameInput.value = '';
+                marketSelect.value = '';
+                marketSelect.setAttribute('disabled', ''); // 禁用市场选择
+                console.error('查询期货信息失败:', error);
+            });
+    }
+
+    // 监听期货品种选择变化
+    futureSelect.addEventListener('change', function() {
+        fillFutureDetails(this.value, null);
+        contractInput.value = ''; // 选择品种后清空合约代码，避免冲突
+    });
+
+    // 监听合约代码输入变化 (使用 debounce 优化)
+    let debounceTimer;
+    contractInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const code = this.value.trim();
+        if (code) {
+            futureSelect.value = ''; // 输入合约代码后清空品种选择
+            debounceTimer = setTimeout(() => {
+                fillFutureDetails(null, code);
+            }, 500); // 延迟500ms触发查询
+        } else {
+            nameInput.value = '';
+            marketSelect.value = '';
+            marketSelect.setAttribute('disabled', ''); // 禁用市场选择
+        }
+    });
+
+    // 表单提交处理
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        if (!form.checkValidity()) {
+            event.stopPropagation();
+            form.classList.add('was-validated');
+            return;
+        }
+
+        // 收集表单数据
+        const formData = {
+            future_info_id: parseInt(futureSelect.value) || null,
+            contract: contractInput.value.trim(),
+            name: nameInput.value.trim(), // Name is now auto-filled
+            market: marketSelect.value !== '' ? parseInt(marketSelect.value) : null, // Market is now auto-filled
+            status: parseInt(document.getElementById('status').value),
+            opportunity: document.getElementById('opportunity').value || null,
+            key_price: document.getElementById('key_price').value ? parseFloat(document.getElementById('key_price').value) : null,
+            open_long_price: document.getElementById('open_long_price').value ? parseFloat(document.getElementById('open_long_price').value) : null,
+            open_short_price: document.getElementById('open_short_price').value ? parseFloat(document.getElementById('open_short_price').value) : null,
+            latest_price: document.getElementById('latest_price').value ? parseFloat(document.getElementById('latest_price').value) : null,
+            open_long_trigger_price: document.getElementById('open_long_trigger_price').value ? parseFloat(document.getElementById('open_long_trigger_price').value) : null,
+            open_short_trigger_price: document.getElementById('open_short_trigger_price').value ? parseFloat(document.getElementById('open_short_trigger_price').value) : null,
+            // 添加其他需要的字段...
+        };
+
+        console.log('准备提交的数据:', formData);
+
+        // 发送创建请求 (注意：API 端点应为 /api/monitor/create 或类似，根据你的后端路由)
+        // 这里假设是 /api/monitor/create
+        fetch('/api/monitor/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('服务器响应:', data);
+            if (data.code === 0) {
+                alert('添加成功！');
+                window.location.href = "{{ url_for('monitor.index') }}";
+            } else {
+                alert('添加失败：' + (data.msg || '未知错误'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('发生错误，请查看控制台了解详情');
+        });
+    });
+
+    // Initialize validation listeners
+    Array.from(form.elements).forEach(element => {
+        element.addEventListener('invalid', () => {
+            form.classList.add('was-validated');
+        });
+    });
+
+});
+</script>
+{% endblock %} 

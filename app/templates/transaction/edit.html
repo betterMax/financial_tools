@@ -1,0 +1,563 @@
+{% extends 'base.html' %}
+
+{% block title %}编辑交易记录 - 期货数据管理系统{% endblock %}
+
+{% block styles %}
+<!-- 引入 Select2 CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@x.x.x/dist/select2-bootstrap4.min.css"> <!-- Select2 Bootstrap 4 主题 -->
+<style>
+    .select2-container--bootstrap4 .select2-selection--multiple {
+        min-height: calc(1.5em + .75rem + 2px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h2>编辑交易记录</h2>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('transaction.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form id="editForm" class="needs-validation" novalidate>
+                 <input type="hidden" id="id" name="id">
+
+                 <div class="row">
+                     <!-- 第一列 -->
+                     <div class="col-md-6">
+                         <div class="mb-3">
+                             <label for="trade_id" class="form-label">交易 ID (Trade Record ID)</label>
+                             <input type="number" class="form-control" id="trade_id" name="trade_id">
+                             <div class="form-text">关联的交易汇总记录 ID。同一个 ID 最多出现两次。</div>
+                         </div>
+                         <div class="mb-3">
+                             <label for="transaction_time" class="form-label">成交时间 <span class="text-danger">*</span></label>
+                             <input type="datetime-local" class="form-control" id="transaction_time" name="transaction_time" required>
+                             <div class="invalid-feedback">请选择成交时间</div>
+                         </div>
+                         <div class="mb-3">
+                             <label for="operation_time" class="form-label">操作时间</label>
+                             <input type="datetime-local" class="form-control" id="operation_time" name="operation_time">
+                         </div>
+                         <div class="mb-3">
+                             <label for="contract_code" class="form-label">合约代码</label>
+                             <input type="text" class="form-control" id="contract_code" name="contract_code">
+                         </div>
+                         <div class="mb-3">
+                             <label for="name" class="form-label">名称</label>
+                             <input type="text" class="form-control" id="name" name="name" readonly>
+                             <div class="form-text">根据合约代码自动生成，不可编辑。</div>
+                         </div>
+                         <div class="mb-3">
+                            <label for="account" class="form-label">账户</label>
+                            <input type="text" class="form-control" id="account" name="account" value="华安期货"> <!-- 默认值 -->
+                         </div>
+                         <div class="mb-3">
+                            <label for="position_type" class="form-label">多空仓位 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="position_type" name="position_type" required>
+                                <option value="0">开多</option>
+                                <option value="1">平多</option>
+                                <option value="2">开空</option>
+                                <option value="3">平空</option>
+                            </select>
+                            <div class="invalid-feedback">请选择多空仓位</div>
+                         </div>
+                         <div class="mb-3">
+                             <label for="price" class="form-label">成交价格 <span class="text-danger">*</span></label>
+                             <input type="number" class="form-control" id="price" name="price" required step="0.001"> <!-- 允许最多3位小数 -->
+                             <div class="invalid-feedback">请输入成交价格</div>
+                         </div>
+                         <div class="mb-3">
+                             <label for="volume" class="form-label">成交手数 <span class="text-danger">*</span></label>
+                             <input type="number" class="form-control" id="volume" name="volume" required step="1" min="0">
+                             <div class="invalid-feedback">请输入有效的整数成交手数</div>
+                         </div>
+                          <div class="mb-3">
+                             <label for="contract_multiplier" class="form-label">合约乘数</label>
+                             <input type="number" class="form-control" id="contract_multiplier" name="contract_multiplier" step="any">
+                         </div>
+                          <div class="mb-3">
+                             <label for="fee" class="form-label">手续费</label>
+                             <input type="number" class="form-control" id="fee" name="fee" step="any" min="0">
+                         </div>
+                         <div class="mb-3">
+                             <label for="amount" class="form-label">成交金额</label>
+                             <input type="number" class="form-control" id="amount" name="amount" readonly step="any">
+                             <div class="form-text">根据价格、手数、乘数自动计算，不可编辑。</div>
+                         </div>
+                         <div class="mb-3">
+                             <label for="margin" class="form-label">保证金</label>
+                             <input type="number" class="form-control" id="margin" name="margin" readonly step="any">
+                             <div class="form-text">根据成交金额和保证金率自动计算，不可编辑。</div>
+                         </div>
+                     </div>
+                     <!-- 第二列 -->
+                     <div class="col-md-6">
+                         <div class="mb-3">
+                             <label for="strategy_name" class="form-label">操作策略</label>
+                             <select class="form-control select2" id="strategy_name" name="strategy_name" multiple="multiple" data-placeholder="选择策略">
+                                 <!-- 选项将通过API加载 -->
+                             </select>
+                             <input type="hidden" id="strategy_ids" name="strategy_ids">
+                         </div>
+                         <div class="mb-3">
+                             <label for="candle_pattern" class="form-label">K线形态</label>
+                             <select class="form-control select2" id="candle_pattern" name="candle_pattern" multiple="multiple" data-placeholder="选择K线形态">
+                                 <!-- 选项将通过API加载 -->
+                             </select>
+                             <input type="hidden" id="candle_pattern_ids" name="candle_pattern_ids">
+                         </div>
+                         <div class="mb-3">
+                             <label for="trade_type" class="form-label">交易类别</label>
+                             <select class="form-select" id="trade_type" name="trade_type">
+                                 <option value="0">模拟交易</option>
+                                 <option value="1">真实交易</option>
+                             </select>
+                         </div>
+                         <div class="mb-3">
+                             <label for="trade_status" class="form-label">交易状态</label>
+                             <select class="form-select" id="trade_status" name="trade_status">
+                                 <option value="0">进行中</option>
+                                 <option value="1">已暂停</option>
+                                 <option value="2">暂停进行</option>
+                                 <option value="3">已结束</option>
+                             </select>
+                         </div>
+                         <div class="mb-3">
+                              <label for="latest_price" class="form-label">最新价格</label>
+                              <input type="number" class="form-control" id="latest_price" name="latest_price" step="0.001">
+                          </div>
+                          <div class="mb-3">
+                             <label for="actual_profit_rate" class="form-label">实际收益率</label>
+                             <input type="text" class="form-control" id="actual_profit_rate" name="actual_profit_rate" readonly>
+                             <div class="form-text">根据最新价格和成交价格计算，不可编辑。</div>
+                         </div>
+                          <div class="mb-3">
+                              <label for="actual_profit" class="form-label">实际收益</label>
+                              <input type="number" class="form-control" id="actual_profit" name="actual_profit" readonly step="any">
+                              <div class="form-text">根据最新价格和成交价格计算，不可编辑。</div>
+                          </div>
+                          <div class="mb-3">
+                              <label for="stop_loss_price" class="form-label">止损价格</label>
+                              <input type="number" class="form-control" id="stop_loss_price" name="stop_loss_price" step="0.001">
+                          </div>
+                          <div class="mb-3">
+                             <label for="stop_loss_rate" class="form-label">止损比例</label>
+                             <input type="text" class="form-control" id="stop_loss_rate" name="stop_loss_rate" readonly>
+                             <div class="form-text">根据止损价格和成交价格计算，不可编辑。</div>
+                         </div>
+                         <div class="mb-3">
+                             <label for="stop_loss_profit" class="form-label">止损收益</label>
+                             <input type="number" class="form-control" id="stop_loss_profit" name="stop_loss_profit" readonly step="any">
+                             <div class="form-text">根据止损价格和成交价格计算，不可编辑。</div>
+                         </div>
+                          <div class="mb-3">
+                             <label for="confidence_index" class="form-label">信心指数</label>
+                             <input type="number" class="form-control" id="confidence_index" name="confidence_index" step="1" min="0">
+                         </div>
+                         <div class="mb-3">
+                             <label for="similarity_evaluation" class="form-label">相似度评估 (%)</label>
+                             <input type="number" class="form-control" id="similarity_evaluation" name="similarity_evaluation" step="0.1">
+                         </div>
+                         <div class="mb-3">
+                             <label for="long_trend_name" class="form-label">长期趋势</label>
+                             <select class="form-control select2" id="long_trend_name" name="long_trend_name" multiple="multiple" data-placeholder="选择长期趋势">
+                                 <!-- 选项将通过API加载 -->
+                             </select>
+                             <input type="hidden" id="long_trend_ids" name="long_trend_ids">
+                         </div>
+                         <div class="mb-3">
+                             <label for="mid_trend_name" class="form-label">中期趋势</label>
+                             <select class="form-control select2" id="mid_trend_name" name="mid_trend_name" multiple="multiple" data-placeholder="选择中期趋势">
+                                 <!-- 选项将通过API加载 -->
+                             </select>
+                             <input type="hidden" id="mid_trend_ids" name="mid_trend_ids">
+                         </div>
+                     </div>
+                 </div>
+
+                 <div class="row mt-3">
+                     <!-- 按钮行 -->
+                     <div class="col-12 text-end">
+                           <button type="submit" class="btn btn-primary">保存更改</button>
+                           <button type="button" id="cancelBtn" class="btn btn-secondary">取消</button>
+                      </div>
+                 </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- 引入 Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- 引入 dayjs 处理日期时间 -->
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/customParseFormat.js"></script>
+<script>
+    dayjs.extend(dayjs_plugin_utc);
+    dayjs.extend(dayjs_plugin_timezone);
+    dayjs.extend(dayjs_plugin_customParseFormat);
+    // 设置默认时区（如果需要）
+    // dayjs.tz.setDefault("Asia/Shanghai");
+
+// --- 复用格式化函数 ---
+function formatNumber(num, precision = 3) {
+    if (num === null || num === undefined || isNaN(num)) return '';
+    let fixedNum = Number(parseFloat(num).toFixed(precision));
+    return fixedNum.toString();
+}
+function formatPercentage(num, precision = 2) {
+    if (num === null || num === undefined || isNaN(num)) return '';
+    let percentage = parseFloat(num) * 100;
+    return formatNumber(percentage, precision) + '%';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const transactionId = "{{ transaction_id }}";
+    const form = document.getElementById('editForm');
+
+    // --- 辅助函数：加载 Select2 选项 --- 
+    function loadSelect2Options(selectElementId, apiUrl, idField = 'id', nameField = 'name', processResults = null) {
+        // Return the fetch promise
+        return fetch(apiUrl)
+            .then(response => response.json())
+            .then(data => {
+                if (data.code === 0 && data.data) {
+                    const selectElement = $(`#${selectElementId}`);
+                    selectElement.empty(); // 清空现有选项
+                    let results = data.data;
+                    if (processResults) {
+                        results = processResults(results);
+                    }
+                    results.forEach(item => {
+                        // Ensure the option value is a string
+                        const option = new Option(item[nameField], String(item[idField]));
+                        selectElement.append(option);
+                    });
+                    selectElement.trigger('change'); // 更新 Select2 显示
+                    return true; // Indicate success
+                } else {
+                    console.error(`加载 ${selectElementId} 选项失败:`, data.msg);
+                    return false; // Indicate failure
+                }
+            })
+            .catch(error => {
+                console.error(`加载 ${selectElementId} 选项请求失败:`, error);
+                return false; // Indicate failure
+            });
+    }
+
+    // --- 辅助函数：填充表单 --- 
+    function populateForm(data) {
+        if (!data) return;
+        console.log("Populating form with data:", data);
+        document.getElementById('id').value = data.id || '';
+        document.getElementById('trade_id').value = data.trade_id || '';
+        
+        // 处理日期时间 (从 YYYY-MM-DD HH:MM 转换为 datetime-local 需要的 YYYY-MM-DDTHH:mm)
+        if (data.transaction_time) {
+            const transactionTime = dayjs(data.transaction_time, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm');
+            document.getElementById('transaction_time').value = transactionTime;
+        }
+         if (data.operation_time) {
+            const operationTime = dayjs(data.operation_time, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm');
+            document.getElementById('operation_time').value = operationTime;
+        } else if (data.transaction_time) { // 如果操作时间为空，默认使用成交时间
+             const transactionTime = dayjs(data.transaction_time, 'YYYY-MM-DD HH:mm').format('YYYY-MM-DDTHH:mm');
+            document.getElementById('operation_time').value = transactionTime;
+        }
+
+        document.getElementById('contract_code').value = data.contract_code || '';
+        document.getElementById('name').value = data.name || ''; // 名称不可编辑
+        document.getElementById('account').value = data.account || '华安期货';
+        document.getElementById('position_type').value = data.position_type !== null ? data.position_type.toString() : '0';
+        document.getElementById('price').value = formatNumber(data.price, 3);
+        document.getElementById('volume').value = formatNumber(data.volume, 0);
+        document.getElementById('contract_multiplier').value = data.contract_multiplier || '';
+        document.getElementById('amount').value = formatNumber(data.amount, 2); // 不可编辑
+        document.getElementById('margin').value = formatNumber(data.margin, 2); // 不可编辑
+        document.getElementById('fee').value = data.fee || '';
+        document.getElementById('trade_type').value = data.trade_type !== null ? data.trade_type.toString() : '0';
+        document.getElementById('trade_status').value = data.trade_status !== null ? data.trade_status.toString() : '0';
+        document.getElementById('latest_price').value = formatNumber(data.latest_price, 3);
+        document.getElementById('actual_profit_rate').value = formatPercentage(data.actual_profit_rate, 2); // 不可编辑
+        document.getElementById('actual_profit').value = formatNumber(data.actual_profit, 2); // 不可编辑
+        document.getElementById('stop_loss_price').value = formatNumber(data.stop_loss_price, 3);
+        document.getElementById('stop_loss_rate').value = formatPercentage(data.stop_loss_rate, 2); // 不可编辑
+        document.getElementById('stop_loss_profit').value = formatNumber(data.stop_loss_profit, 2); // 不可编辑
+        document.getElementById('confidence_index').value = formatNumber(data.confidence_index, 0);
+        document.getElementById('similarity_evaluation').value = data.similarity_evaluation !== null && data.similarity_evaluation !== undefined ? data.similarity_evaluation : '';
+
+        // 填充 Select2 多选框 (在选项加载完成后进行)
+        if (data.strategy_ids) {
+            const ids = data.strategy_ids.split(',').map(id => String(id.trim())).filter(id => id);
+            $('#strategy_name').val(ids).trigger('change');
+        }
+        if (data.candle_pattern_ids) {
+            const ids = data.candle_pattern_ids.split(',').map(id => String(id.trim())).filter(id => id);
+            $('#candle_pattern').val(ids).trigger('change');
+        }
+        if (data.long_trend_ids) {
+            const ids = data.long_trend_ids.split(',').map(id => String(id.trim())).filter(id => id);
+            $('#long_trend_name').val(ids).trigger('change');
+        }
+         if (data.mid_trend_ids) {
+            const ids = data.mid_trend_ids.split(',').map(id => String(id.trim())).filter(id => id);
+            $('#mid_trend_name').val(ids).trigger('change');
+        }
+    }
+
+    // --- 初始化页面 --- 
+    function initializePage() {
+        const transactionId = "{{ transaction_id }}";
+
+        // 1. 初始化 Select2 (同步)
+        $('.select2').select2({
+            theme: 'bootstrap4',
+            width: '100%',
+            tags: false
+        });
+
+        // 2. 加载 Select2 选项 (异步)
+        const loadStrategyOptions = loadSelect2Options('strategy_name', '/api/dimension/strategy/list_all', 'id', 'name');
+        const loadCandleOptions = loadSelect2Options('candle_pattern', '/api/dimension/candle/list_all', 'id', 'name');
+        const loadLongTrendOptions = loadSelect2Options('long_trend_name', '/api/dimension/trend/list_all', 'id', 'name');
+        const loadMidTrendOptions = loadSelect2Options('mid_trend_name', '/api/dimension/trend/list_all', 'id', 'name');
+
+        // 3. 等待所有选项加载完成后，加载并填充表单数据 (异步)
+        Promise.all([loadStrategyOptions, loadCandleOptions, loadLongTrendOptions, loadMidTrendOptions])
+            .then(loadResults => {
+                console.log("All Select2 options loaded successfully:", loadResults);
+                if (transactionId && transactionId !== '0') {
+                    console.log(`[Edit Page] Fetching data for transaction ID: ${transactionId}`);
+                    return fetch(`/transaction/api/detail/${transactionId}`);
+                } else {
+                    console.log("[Edit Page] No valid transaction ID provided, treating as new or error.");
+                    // 设置默认值（如果不是编辑现有记录）
+                    document.getElementById('account').value = '华安期货';
+                    document.getElementById('operation_time').value = dayjs().format('YYYY-MM-DDTHH:mm');
+                    document.getElementById('transaction_time').value = dayjs().format('YYYY-MM-DDTHH:mm');
+                    return Promise.reject('No Transaction ID'); // Skip fetching and populating
+                }
+            })
+            .then(response => response.json()) // 只在有 transactionId 时执行
+            .then(responseData => {
+                console.log("[Edit Page] Received data from API:", responseData);
+                if (responseData.code === 0 && responseData.data) {
+                    console.log("[Edit Page] Data is valid, calling populateForm...");
+                    populateForm(responseData.data);
+                } else if (responseData.code !== undefined) { // Check if it's a valid API response
+                    console.error('[Edit Page] API returned error or no data:', responseData.msg);
+                    alert('加载交易信息失败：' + (responseData.msg || '未知错误'));
+                } // Else: 'No Transaction ID' case was handled by Promise.reject
+            })
+            .catch(error => {
+                if (error === 'No Transaction ID') {
+                    // Expected case when creating a new record or ID is missing
+                } else {
+                    console.error('[Edit Page] Error during initialization:', error);
+                    alert('页面初始化或加载交易信息时出错: ' + error.message);
+                }
+            });
+    }
+
+    initializePage(); // 执行初始化
+
+    // --- 表单提交处理 --- 
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        if (!form.checkValidity()) {
+            event.stopPropagation();
+            form.classList.add('was-validated');
+            return;
+        }
+
+        // 收集表单数据
+        const formData = new FormData(form);
+        const data = {};
+        formData.forEach((value, key) => {
+             // 处理 Select2 多选字段 (取 ID)
+             if (key === 'strategy_name') {
+                 data['strategy_ids'] = $('#strategy_name').val() ? $('#strategy_name').val().join(',') : null;
+                 data['strategy_name'] = $('#strategy_name').select2('data').map(item => item.text).join('+');
+                 return; // 跳过原始 key
+             }
+             if (key === 'candle_pattern') {
+                 data['candle_pattern_ids'] = $('#candle_pattern').val() ? $('#candle_pattern').val().join(',') : null;
+                 data['candle_pattern'] = $('#candle_pattern').select2('data').map(item => item.text).join('+');
+                 return;
+             }
+             if (key === 'long_trend_name') {
+                 data['long_trend_ids'] = $('#long_trend_name').val() ? $('#long_trend_name').val().join(',') : null;
+                 data['long_trend_name'] = $('#long_trend_name').select2('data').map(item => item.text).join('+');
+                 return;
+             }
+             if (key === 'mid_trend_name') {
+                 data['mid_trend_ids'] = $('#mid_trend_name').val() ? $('#mid_trend_name').val().join(',') : null;
+                 data['mid_trend_name'] = $('#mid_trend_name').select2('data').map(item => item.text).join('+');
+                 return;
+             }
+             // 对于空字符串，根据需要转为 null 或保持空字符串
+             // 这里我们将空字符串转为 null，除非它是某些特定字段 (如 account 可以为空但不能是 null)
+             if (value === '' && key !== 'account' && key !== 'contract_code' /* Add other keys that can be empty string */) {
+                 data[key] = null;
+             } else {
+                  // 转换数字类型
+                 if ([ 'trade_id', 'position_type', 'volume', 'trade_type', 'trade_status', 'confidence_index'].includes(key)) {
+                     data[key] = value ? parseInt(value) : null;
+                 } else if ([ 'price', 'contract_multiplier', 'fee', 'latest_price', 'stop_loss_price', 'similarity_evaluation'].includes(key)) {
+                     data[key] = value ? parseFloat(value) : null;
+                 } else {
+                     data[key] = value;
+                 }
+             }
+        });
+        
+        // 移除只读字段，防止提交
+        delete data.amount;
+        delete data.margin;
+        delete data.actual_profit_rate;
+        delete data.actual_profit;
+        delete data.stop_loss_rate;
+        delete data.stop_loss_profit;
+        delete data.name; // 名称不可编辑
+
+        // 移除隐藏的ID字段的键名，避免冲突
+        delete data.strategy_ids; 
+        delete data.candle_pattern_ids;
+        delete data.long_trend_ids;
+        delete data.mid_trend_ids;
+
+        console.log('Submitting data:', data);
+
+        // 发送更新请求
+        fetch(`/transaction/api/update/${transactionId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(responseData => {
+            console.log('Server response:', responseData);
+            if (responseData.code === 0) {
+                alert('更新成功: ' + responseData.msg);
+                window.location.href = "{{ url_for('transaction.index') }}";
+            } else {
+                alert('更新失败：' + responseData.msg);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('更新请求失败。');
+        });
+    });
+
+    // --- Cancel Button Handler ---
+    const cancelButton = document.getElementById('cancelBtn');
+    if (cancelButton) {
+        cancelButton.addEventListener('click', function() {
+            window.location.href = "{{ url_for('transaction.index') | safe }}"; // Added safe filter just in case
+        });
+    }
+
+    // --- 动态计算与更新 (可选，如果需要实时反馈) ---
+    function updateCalculatedFields() {
+        const price = parseFloat(document.getElementById('price').value) || 0;
+        const volume = parseInt(document.getElementById('volume').value) || 0;
+        const multiplier = parseFloat(document.getElementById('contract_multiplier').value) || 1;
+        const latestPrice = parseFloat(document.getElementById('latest_price').value);
+        const stopLossPrice = parseFloat(document.getElementById('stop_loss_price').value);
+        const positionType = parseInt(document.getElementById('position_type').value);
+
+        // 计算 Amount
+        const amount = price * volume * multiplier;
+        document.getElementById('amount').value = formatNumber(amount, 2);
+
+        // 计算 Volume Change (用于后续计算)
+        let volumeChange = 0;
+        if (positionType === 0 || positionType === 3) volumeChange = volume;
+        else if (positionType === 1 || positionType === 2) volumeChange = -volume;
+
+        // 保证金计算需要异步获取费率，这里暂时不清空或显示 N/A
+        // document.getElementById('margin').value = 'N/A'; 
+
+        // 计算实际收益率和收益
+        let actualProfitRate = null, actualProfit = null;
+        if (!isNaN(latestPrice) && price !== 0) {
+             const directionMultiplier = (positionType === 2 || positionType === 3) ? -1 : 1;
+             actualProfitRate = directionMultiplier * (latestPrice - price) / price;
+             actualProfit = (latestPrice - price) * volumeChange * multiplier;
+        }
+        document.getElementById('actual_profit_rate').value = formatPercentage(actualProfitRate, 2);
+        document.getElementById('actual_profit').value = formatNumber(actualProfit, 2);
+        
+        // 计算止损比例和收益
+        let stopLossRate = null, stopLossProfit = null;
+         if (!isNaN(stopLossPrice) && price !== 0) {
+             const directionMultiplier = (positionType === 2 || positionType === 3) ? -1 : 1;
+             stopLossRate = directionMultiplier * (stopLossPrice - price) / price;
+             stopLossProfit = (stopLossPrice - price) * volumeChange * multiplier;
+        }
+        document.getElementById('stop_loss_rate').value = formatPercentage(stopLossRate, 2);
+        document.getElementById('stop_loss_profit').value = formatNumber(stopLossProfit, 2);
+    }
+
+    // 监听相关字段变化，触发计算更新
+    ['price', 'volume', 'contract_multiplier', 'latest_price', 'stop_loss_price', 'position_type'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('input', updateCalculatedFields);
+            element.addEventListener('change', updateCalculatedFields); // For select
+        }
+    });
+
+    // 合约代码变化时，尝试更新名称 (需要后端API支持)
+    const contractCodeInput = document.getElementById('contract_code');
+    if (contractCodeInput) {
+        contractCodeInput.addEventListener('change', function() {
+            const code = this.value.trim();
+            if (code) {
+                // 示例: /api/future_info/get_name_by_code?code=CU2305
+                fetch(`/api/future_info/get_name_by_code?code=${encodeURIComponent(code)}`)
+                    .then(res => res.json())
+                    .then(resData => {
+                        if (resData.code === 0 && resData.data && resData.data.name) {
+                            document.getElementById('name').value = resData.data.name;
+                            // 如果还需要更新乘数等信息，可以在这里处理
+                             if (resData.data.contract_multiplier !== undefined) {
+                                document.getElementById('contract_multiplier').value = resData.data.contract_multiplier;
+                                updateCalculatedFields(); // 乘数变化，更新计算
+                            }
+                        } else {
+                            // 找不到或出错，可以清空名称或提示用户
+                            document.getElementById('name').value = ''; 
+                        }
+                    })
+                    .catch(err => {
+                        console.error('获取名称失败:', err);
+                        document.getElementById('name').value = ''; 
+                    });
+            } else {
+                 document.getElementById('name').value = ''; 
+            }
+        });
+    }
+});
+</script>
+{% endblock %} 

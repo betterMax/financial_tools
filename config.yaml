@@ -1,0 +1,70 @@
+# 期货数据管理系统配置文件
+
+# Flask应用配置
+flask:
+  SECRET_KEY: "your_secret_key_here"
+  SQLALCHEMY_DATABASE_URI: "sqlite:///financial_tools.db"  # 数据库URI，可以替换为MySQL或PostgreSQL
+  SQLALCHEMY_TRACK_MODIFICATIONS: false
+  DEBUG: true  # 调试模式
+  TESTING: false  # 测试模式
+
+# 数据库配置
+database:
+  backup_dir: "data/backup"  # 数据库备份目录
+  migration_dir: "database/migrations"  # 数据库迁移脚本目录
+
+# 日志配置
+logging:
+  version: 1
+  formatters:
+    default:
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    console:
+      class: logging.StreamHandler
+      level: INFO
+      formatter: default
+      stream: ext://sys.stdout
+    file:
+      class: logging.FileHandler
+      level: INFO
+      formatter: default
+      filename: "logs/financial_tools.log"
+  loggers:
+    app:
+      level: INFO
+      handlers: [console, file]
+      propagate: false
+  root:
+    level: INFO
+    handlers: [console, file]
+
+# 爬虫配置
+scraper:
+  future_daily_url: "http://121.37.80.177/fees.html"  # 期货每日数据爬取URL
+  headers:
+    User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+
+# 定时任务配置
+data_update:
+  scheduler:
+    timezone: "Asia/Shanghai"
+    max_instances: 1
+    coalesce: true  # 错过的任务是否合并执行
+    misfire_grace_time: 60  # 任务触发允许的最大延迟时间（秒）
+  schedule:
+    - hour: "11"
+      minute: "31"
+      retry: true
+      max_retries: 1
+      retry_delay: 10  # 重试间隔（秒）
+    - hour: "14"
+      minute: "30"
+      retry: true
+      max_retries: 1
+      retry_delay: 10
+    - hour: "15"
+      minute: "30"
+      retry: true
+      max_retries: 1
+      retry_delay: 10

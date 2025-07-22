@@ -1,0 +1,417 @@
+{% extends 'base.html' %}
+
+{% block title %}期货基础信息 - 期货数据管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+             <!-- 标题和操作按钮 -->
+            <div class="row mb-0 align-items-center"> <!-- mb-3 removed, header adds padding -->
+                <div class="col-md-6">
+                    <h2>期货基础信息</h2>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button id="updateDataBtn" type="button" class="btn btn-primary btn-sm me-1">
+                        <i class="fas fa-sync-alt"></i> 更新
+                    </button>
+                    <button id="sortMainContract" class="btn btn-info btn-sm me-1">
+                        <i class="fas fa-sort"></i> 不一致
+                    </button>
+                    <a href="{{ url_for('future_info.import_view') }}" class="btn btn-success btn-sm me-1">
+                        <i class="fas fa-file-import"></i> 导入
+                    </a>
+                    <a href="{{ url_for('future_info.add') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> 添加
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+             <!-- 筛选/搜索区域 -->
+            <form id="searchForm" class="mb-3">
+                <div class="row g-2 align-items-center justify-content-end">
+                     <div class="col-md-2">
+                         <select class="form-select form-select-sm" name="market_filter" id="marketFilter">
+                            <option value="">所有市场</option>
+                            <option value="0">国内</option>
+                            <option value="1">国外</option>
+                        </select>
+                    </div>
+                     <div class="col-md-3">
+                        <input type="text" class="form-control form-control-sm" placeholder="按长期趋势筛选..." name="trend_filter" id="trendFilter">
+                    </div>
+                    <div class="col-md-4">
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" placeholder="搜索合约字母或名称..." name="search" id="searchInput">
+                            <button class="btn btn-outline-secondary btn-sm" type="submit">搜索</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <!-- 数据表格 -->
+             <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>合约字母</th>
+                            <th>名称</th>
+                            <th>市场</th>
+                            <!-- <th>交易所</th> -->
+                            <!-- <th>合约乘数</th> -->
+                            <th>做多保证金率</th>
+                            <th>做空保证金率</th>
+                            <th>同花主力合约</th>
+                            <th>当前主力合约</th>
+                            <th>长期趋势</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="futuresTableBody">
+                        <!-- 数据将通过JavaScript动态加载 -->
+                    </tbody>
+                </table>
+            </div>
+            <!-- 分页控件和每页数量选择器 -->
+            <div class="d-flex justify-content-center align-items-center mt-3">
+                <nav aria-label="Page navigation" class="me-3">
+                    <ul class="pagination mb-0" id="pagination">
+                        <!-- 分页按钮将通过JavaScript动态加载 -->
+                    </ul>
+                </nav>
+                <div class="d-flex align-items-center" id="itemsPerPageContainer" style="display: none;">
+                    <label for="itemsPerPageSelect" class="col-form-label me-2 mb-0">每页:</label>
+                    <select class="form-select form-select-sm" id="itemsPerPageSelect" style="width: auto;">
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast容器 -->
+<div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
+<!-- 引入 jQuery -->
+<script src="https://cdn.staticfile.org/jquery/3.6.0/jquery.min.js"></script>
+<!-- 引入 Bootstrap JS (如果尚未在base.html中引入) -->
+<!-- <script src="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script> -->
+
+<script>
+$(document).ready(function() {
+    let currentPage = 1;
+    let currentItemsPerPage = parseInt($('#itemsPerPageSelect').val()) || 10;
+    let currentSearch = '';
+    let currentMarketFilter = '';
+    let currentTrendFilter = '';
+    let isSorting = false; // 标记是否处于排序状态
+
+    // --- 数据加载与渲染 ---
+    function loadFutures(page = 1, filters = {}) {
+        currentPage = page;
+        filters.page = page;
+        filters.limit = currentItemsPerPage;
+        filters.search = currentSearch;
+        filters.market = currentMarketFilter; // 添加市场筛选参数
+        filters.long_term_trend = currentTrendFilter; // 添加趋势筛选参数
+
+        // 添加加载提示
+        $('#futuresTableBody').html('<tr><td colspan="9" class="text-center">数据加载中...</td></tr>');
+        $('#pagination').empty();
+        $('#itemsPerPageContainer').hide();
+
+        $.get("{{ url_for('future_info.get_future_info_list') }}", filters, function(response) {
+            if (response.code === 0) {
+                renderTable(response.data);
+                renderPagination(response.count, currentPage, currentItemsPerPage);
+                if (isSorting) {
+                    applySortingAndHighlighting(); // 如果处于排序状态，重新应用排序和高亮
+                }
+            } else {
+                $('#futuresTableBody').html('<tr><td colspan="9" class="text-center text-danger">加载失败：' + response.msg + '</td></tr>');
+            }
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            $('#futuresTableBody').html('<tr><td colspan="9" class="text-center text-danger">加载失败：' + textStatus + '</td></tr>');
+        });
+    }
+
+    function renderTable(data) {
+        let html = '';
+        if (data && data.length > 0) {
+            data.forEach(function(item) {
+                const longMarginRate = item.long_margin_rate ? (item.long_margin_rate * 100).toFixed(2) + '%' : '';
+                const shortMarginRate = item.short_margin_rate ? (item.short_margin_rate * 100).toFixed(2) + '%' : '';
+                const marketDisplay = item.market === 0 ? '国内' : (item.market === 1 ? '国外' : '未知'); // 转换市场显示
+                html += `
+                    <tr data-id="${item.id}" data-th-main="${item.th_main_contract || ''}" data-current-main="${item.current_main_contract || ''}">
+                        <td>${item.contract_letter || ''}</td>
+                        <td>${item.name || ''}</td>
+                        <td>${marketDisplay}</td>
+                        <td>${longMarginRate}</td>
+                        <td>${shortMarginRate}</td>
+                        <td>${item.th_main_contract || ''}</td>
+                        <td>${item.current_main_contract || ''}</td>
+                        <td>${item.long_term_trend || ''}</td>
+                        <td>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                    操作
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="/api/future_info/detail/${item.id}">查看</a></li>
+                                    <li><a class="dropdown-item" href="/api/future_info/edit/${item.id}">编辑</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><button class="dropdown-item text-danger delete-future" data-id="${item.id}">删除</button></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        } else {
+            html = '<tr><td colspan="9" class="text-center">暂无期货信息</td></tr>';
+        }
+        $('#futuresTableBody').html(html);
+    }
+
+    function renderPagination(totalItems, page, itemsPerPage) {
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        let paginationHtml = '';
+
+        if (totalPages <= 1) {
+            $('#pagination').empty();
+            $('#itemsPerPageContainer').hide();
+            return;
+        }
+        $('#itemsPerPageContainer').show();
+
+        // 上一页按钮
+        paginationHtml += `<li class="page-item ${page === 1 ? 'disabled' : ''}">
+                            <a class="page-link" href="#" data-page="${page - 1}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                           </li>`;
+
+        // 页码按钮 (只显示部分页码)
+        const maxPagesToShow = 5;
+        let startPage = Math.max(1, page - Math.floor(maxPagesToShow / 2));
+        let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+        if (endPage - startPage + 1 < maxPagesToShow) {
+            startPage = Math.max(1, endPage - maxPagesToShow + 1);
+        }
+        if (startPage > 1) {
+            paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`;
+            if (startPage > 2) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHtml += `<li class="page-item ${i === page ? 'active' : ''}">
+                                <a class="page-link" href="#" data-page="${i}">${i}</a>
+                               </li>`;
+        }
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+            paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`;
+        }
+
+        // 下一页按钮
+        paginationHtml += `<li class="page-item ${page === totalPages ? 'disabled' : ''}">
+                            <a class="page-link" href="#" data-page="${page + 1}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                           </li>`;
+
+        $('#pagination').html(paginationHtml);
+    }
+
+    // --- 事件绑定 ---
+    // 分页点击
+    $('#pagination').on('click', 'a.page-link', function(e) {
+        e.preventDefault();
+        const page = $(this).data('page');
+        if (page && page !== currentPage) {
+            loadFutures(page);
+        }
+    });
+
+    // 每页数量变化
+    $('#itemsPerPageSelect').on('change', function() {
+        currentItemsPerPage = parseInt($(this).val());
+        loadFutures(1); // 回到第一页
+    });
+
+    // 搜索表单提交 (包括筛选)
+    $('#searchForm').on('submit', function(e) {
+        e.preventDefault();
+        currentSearch = $('#searchInput').val();
+        currentMarketFilter = $('#marketFilter').val(); // 获取市场筛选值
+        currentTrendFilter = $('#trendFilter').val(); // 获取趋势筛选值
+        isSorting = false; // 清除排序状态
+        loadFutures(1); // 搜索后回到第一页
+    });
+
+    // 删除按钮 (使用事件委托)
+    $('#futuresTableBody').on('click', '.delete-future', function() {
+        const futureId = $(this).data('id');
+        if (confirm('确定要删除此期货信息吗？')) {
+            $.ajax({
+                url: `/api/future_info/delete/${futureId}`,
+                type: 'DELETE',
+                success: function(response) {
+                    if (response.code === 0) {
+                        showToast('success', '删除成功', '期货信息已删除。');
+                        loadFutures(currentPage); // 重新加载当前页
+                    } else {
+                        showToast('error', '删除失败', response.msg);
+                    }
+                },
+                error: function() {
+                    showToast('error', '请求失败', '删除请求发送失败。');
+                }
+            });
+        }
+    });
+
+    // 手动更新数据按钮
+    const updateDataBtn = $('#updateDataBtn');
+    let pollInterval;
+    let pollCount = 0;
+    const maxPollCount = 60; // 最多轮询60次
+
+    updateDataBtn.on('click', function() {
+        const $btn = $(this);
+        const icon = $btn.find('i');
+
+        $btn.prop('disabled', true);
+        icon.addClass('fa-spin');
+        $btn.html(`<i class="fas fa-sync-alt fa-spin"></i> 正在启动更新...`);
+
+        $.ajax({
+            url: "{{ url_for('future_info.update_future_data') }}",
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ update_mode: 'both' }),
+            success: function(response) {
+                if (response.code === 0) {
+                    showToast('info', '更新已启动', response.msg);
+                    checkUpdateStatus();
+                } else {
+                    showToast('error', '启动更新失败', response.msg);
+                    restoreUpdateBtn();
+                }
+            },
+            error: function() {
+                showToast('error', '请求失败', '启动更新请求失败');
+                restoreUpdateBtn();
+            }
+        });
+    });
+
+    function checkUpdateStatus() {
+        pollCount = 0;
+        if (pollInterval) {
+            clearInterval(pollInterval);
+        }
+        updateDataBtn.html(`<i class="fas fa-sync-alt fa-spin"></i> 数据更新中...`);
+
+        pollInterval = setInterval(function() {
+            pollCount++;
+            if (pollCount > maxPollCount) {
+                clearInterval(pollInterval);
+                showToast('warning', '更新超时', '数据更新超时，请稍后手动刷新页面。');
+                restoreUpdateBtn();
+                return;
+            }
+
+            $.get("{{ url_for('future_info.get_update_status') }}", function(response) {
+                if (response.code === 0 && response.data) {
+                    if (response.data.complete === true) {
+                        clearInterval(pollInterval);
+                        showToast('success', '更新完成', '数据更新成功！页面将自动刷新。');
+                        setTimeout(() => { location.reload(); }, 2000);
+                    } else if (response.data.complete === false) {
+                        clearInterval(pollInterval);
+                        showToast('error', '更新失败', `数据更新失败: ${response.data.error || '未知错误'}`);
+                        restoreUpdateBtn();
+                    }
+                }
+            }).fail(function() {
+                 console.error("检查更新状态请求失败");
+            });
+        }, 5000);
+    }
+
+    function restoreUpdateBtn() {
+        updateDataBtn.prop('disabled', false);
+        updateDataBtn.html(`<i class="fas fa-sync-alt"></i> 手动更新数据`);
+    }
+
+    // 主力合约排序功能
+    $('#sortMainContract').on('click', function() {
+        isSorting = true; // 标记为排序状态
+        applySortingAndHighlighting();
+    });
+
+    function applySortingAndHighlighting() {
+        const rows = $('#futuresTableBody tr').get(); // 获取所有行DOM元素
+        rows.sort((a, b) => {
+            const aThMain = $(a).data('th-main') || '';
+            const aCurrentMain = $(a).data('current-main') || '';
+            const bThMain = $(b).data('th-main') || '';
+            const bCurrentMain = $(b).data('current-main') || '';
+            const aNotMatch = aThMain !== aCurrentMain;
+            const bNotMatch = bThMain !== bCurrentMain;
+            if (aNotMatch === bNotMatch) return 0;
+            return aNotMatch ? -1 : 1;
+        });
+
+        const tbody = $('#futuresTableBody');
+        tbody.empty(); // 清空tbody
+        $.each(rows, function(index, row) {
+            const $row = $(row);
+            const thMain = $row.data('th-main') || '';
+            const currentMain = $row.data('current-main') || '';
+            if (thMain !== currentMain) {
+                $row.addClass('table-warning');
+            } else {
+                $row.removeClass('table-warning');
+            }
+            tbody.append($row); // 重新添加排序和高亮后的行
+        });
+    }
+
+    // --- Toast 显示 ---
+    function showToast(type, title, message) {
+        const bgClass = type === 'success' ? 'bg-success' : (type === 'error' ? 'bg-danger' : (type === 'warning' ? 'bg-warning' : 'bg-info'));
+        const toastHtml = `
+            <div class="toast align-items-center text-white ${bgClass} border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="5000">
+              <div class="d-flex">
+                <div class="toast-body">
+                  <strong>${title}:</strong> ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
+            </div>
+        `;
+        const $toastElement = $(toastHtml);
+        $('#toast-container').append($toastElement);
+        const toast = new bootstrap.Toast($toastElement[0]);
+        toast.show();
+         // Optional: Remove the toast from DOM after it's hidden
+        $toastElement.on('hidden.bs.toast', function () {
+            $(this).remove();
+        });
+    }
+
+    // --- 初始加载 ---
+    loadFutures();
+});
+</script>
+{% endblock %} 

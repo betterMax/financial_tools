@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+
+{% block title %}交易记录详情 - 期货数据管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h2>交易记录详情 - ID: {{ transaction.id }}</h2>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('transaction.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回列表
+            </a>
+            <a href="{{ url_for('transaction.edit', id=transaction.id) }}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> 编辑
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">交易信息 (根据 BRD 4.1.2 item 5)</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-striped table-sm">
+                <tbody>
+                    <tr>
+                        <th style="width: 200px">ID</th>
+                        <td>{{ transaction.id }}</td>
+                    </tr>
+                    <tr>
+                        <th>交易 ID (trade_id)</th>
+                        <td>{{ transaction.trade_id or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>成交时间</th>
+                        <td>{{ transaction.transaction_time }}</td>
+                    </tr>
+                    <tr>
+                        <th>合约代码</th>
+                        <td>{{ transaction.contract_code or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>名称</th>
+                        <td>{{ transaction.name or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>账户</th>
+                        <td>{{ transaction.account or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>操作策略</th>
+                        <td>{{ transaction.strategy_name or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>多空仓位</th>
+                        <td id="detail-position_type">{{ transaction.position_type }}</td>
+                    </tr>
+                    <tr>
+                        <th>K线形态</th>
+                        <td>{{ transaction.candle_pattern or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>成交价格</th>
+                        <td id="detail-price">{{ transaction.price }}</td>
+                    </tr>
+                     <tr>
+                        <th>成交手数</th>
+                        <td id="detail-volume">{{ transaction.volume }}</td>
+                    </tr>
+                     <tr>
+                        <th>成交金额</th>
+                        <td id="detail-amount">{{ transaction.amount }}</td>
+                    </tr>
+                     <tr>
+                        <th>保证金</th>
+                        <td id="detail-margin">{{ transaction.margin }}</td>
+                    </tr>
+                     <tr>
+                        <th>交易类别</th>
+                        <td id="detail-trade_type">{{ transaction.trade_type }}</td>
+                    </tr>
+                     <tr>
+                        <th>交易状态</th>
+                        <td id="detail-trade_status">{{ transaction.trade_status }}</td>
+                    </tr>
+                     <tr>
+                        <th>最新价格</th>
+                        <td id="detail-latest_price">{{ transaction.latest_price }}</td>
+                    </tr>
+                     <tr>
+                        <th>实际收益率</th>
+                        <td id="detail-actual_profit_rate" class="profit-loss">{{ transaction.actual_profit_rate }}</td>
+                    </tr>
+                     <tr>
+                        <th>实际收益</th>
+                        <td id="detail-actual_profit" class="profit-loss">{{ transaction.actual_profit }}</td>
+                    </tr>
+                     <tr>
+                        <th>止损价格</th>
+                        <td id="detail-stop_loss_price">{{ transaction.stop_loss_price }}</td>
+                    </tr>
+                     <tr>
+                        <th>止损比例</th>
+                        <td id="detail-stop_loss_rate" class="profit-loss">{{ transaction.stop_loss_rate }}</td>
+                    </tr>
+                     <tr>
+                        <th>止损收益</th>
+                        <td id="detail-stop_loss_profit" class="profit-loss">{{ transaction.stop_loss_profit }}</td>
+                    </tr>
+                    <tr>
+                        <th>操作时间</th>
+                        <td>{{ transaction.operation_time }}</td>
+                    </tr>
+                    <tr>
+                        <th>信心指数</th>
+                        <td id="detail-confidence_index">{{ transaction.confidence_index }}</td>
+                    </tr>
+                    <tr>
+                        <th>相似度评估</th>
+                        <td id="detail-similarity_evaluation">{{ transaction.similarity_evaluation }}</td>
+                    </tr>
+                    <tr>
+                        <th>长期趋势名称</th>
+                        <td>{{ transaction.long_trend_name or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>中期趋势名称</th>
+                        <td>{{ transaction.mid_trend_name or 'N/A' }}</td>
+                    </tr>
+                    <!-- 移除 BRD 未提及的字段 -->
+                    <!-- 
+                    <tr>
+                        <th>是否平今</th>
+                        <td>{{ '是' if transaction.is_close_today else '否' }}</td>
+                    </tr>
+                    <tr>
+                        <th>关联开仓记录ID</th>
+                        <td>{{ transaction.related_open_id or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>备注</th>
+                        <td>{{ transaction.notes or '无' }}</td>
+                    </tr>
+                    <tr>
+                        <th>创建时间</th>
+                        <td>{{ transaction.created_at.strftime('%Y-%m-%d %H:%M:%S') if transaction.created_at else 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>更新时间</th>
+                        <td>{{ transaction.updated_at.strftime('%Y-%m-%d %H:%M:%S') if transaction.updated_at else 'N/A' }}</td>
+                    </tr> 
+                    -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 复用 index 页面的格式化函数
+function formatNumber(num, precision = 3) {
+    if (num === null || num === undefined || isNaN(num)) {
+        return 'N/A'; // 详情页用 N/A
+    }
+    let fixedNum = Number(parseFloat(num).toFixed(precision)); 
+    return fixedNum.toString();
+}
+
+function formatPercentage(num, precision = 2) {
+    if (num === null || num === undefined || isNaN(num)) {
+        return 'N/A';
+    }
+    let percentage = parseFloat(num) * 100;
+    return formatNumber(percentage, precision) + '%';
+}
+
+function getPositionTypeText(type) {
+    const types = { 0: '开多', 1: '平多', 2: '开空', 3: '平空' };
+    return types[type] !== undefined ? types[type] : '未知';
+}
+
+function getTradeTypeText(type) {
+    return type === 1 ? '真实交易' : (type === 0 ? '模拟交易' : '未知');
+}
+
+function getTradeStatusText(status) {
+    const statuses = { 0: '进行中', 1: '已暂停', 2: '暂停进行', 3: '已结束' };
+    return statuses[status] !== undefined ? statuses[status] : '未知';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 将 applyProfitLossClass 移到内部，确保在 DOM 加载后可用
+    function applyProfitLossClass(elementId) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+        const rawValue = element.textContent.replace('%', ''); // 去掉百分号（如果存在）
+        if (rawValue === 'N/A' || isNaN(parseFloat(rawValue))) {
+            element.classList.remove('text-danger', 'text-success');
+            return;
+        }
+        const num = parseFloat(rawValue);
+        element.classList.remove('text-danger', 'text-success'); // 先移除旧样式
+        if (num > 0) element.classList.add('text-danger');
+        else if (num < 0) element.classList.add('text-success');
+    }
+
+    // 获取原始数据 - 不再需要，将从 DOM 读取
+    // const transactionData = {{ transaction | tojson | safe }};
+
+    // 格式化显示 - 直接读取并更新 DOM 元素内容
+    const positionTypeElement = document.getElementById('detail-position_type');
+    if (positionTypeElement) positionTypeElement.textContent = getPositionTypeText(parseFloat(positionTypeElement.textContent));
+
+    const priceElement = document.getElementById('detail-price');
+    if (priceElement) priceElement.textContent = formatNumber(parseFloat(priceElement.textContent), 3);
+
+    const volumeElement = document.getElementById('detail-volume');
+    if (volumeElement) volumeElement.textContent = formatNumber(parseFloat(volumeElement.textContent), 0);
+
+    const amountElement = document.getElementById('detail-amount');
+    if (amountElement) amountElement.textContent = formatNumber(parseFloat(amountElement.textContent), 2);
+
+    const marginElement = document.getElementById('detail-margin');
+    if (marginElement) marginElement.textContent = formatNumber(parseFloat(marginElement.textContent), 2);
+    
+    const tradeTypeElement = document.getElementById('detail-trade_type');
+    if (tradeTypeElement) tradeTypeElement.textContent = getTradeTypeText(parseFloat(tradeTypeElement.textContent));
+
+    const tradeStatusElement = document.getElementById('detail-trade_status');
+    if (tradeStatusElement) tradeStatusElement.textContent = getTradeStatusText(parseFloat(tradeStatusElement.textContent));
+
+    const latestPriceElement = document.getElementById('detail-latest_price');
+    if (latestPriceElement) latestPriceElement.textContent = formatNumber(parseFloat(latestPriceElement.textContent), 3);
+
+    const actualProfitRateElement = document.getElementById('detail-actual_profit_rate');
+    if (actualProfitRateElement) actualProfitRateElement.textContent = formatPercentage(parseFloat(actualProfitRateElement.textContent), 2);
+
+    const actualProfitElement = document.getElementById('detail-actual_profit');
+    if (actualProfitElement) actualProfitElement.textContent = formatNumber(parseFloat(actualProfitElement.textContent), 2);
+
+    const stopLossPriceElement = document.getElementById('detail-stop_loss_price');
+    if (stopLossPriceElement) stopLossPriceElement.textContent = formatNumber(parseFloat(stopLossPriceElement.textContent), 3);
+
+    const stopLossRateElement = document.getElementById('detail-stop_loss_rate');
+    if (stopLossRateElement) stopLossRateElement.textContent = formatPercentage(parseFloat(stopLossRateElement.textContent), 2);
+
+    const stopLossProfitElement = document.getElementById('detail-stop_loss_profit');
+    if (stopLossProfitElement) stopLossProfitElement.textContent = formatNumber(parseFloat(stopLossProfitElement.textContent), 2);
+
+    const confidenceIndexElement = document.getElementById('detail-confidence_index');
+    if (confidenceIndexElement) confidenceIndexElement.textContent = formatNumber(parseFloat(confidenceIndexElement.textContent), 0);
+
+    const similarityEvaluationElement = document.getElementById('detail-similarity_evaluation');
+    if (similarityEvaluationElement) similarityEvaluationElement.textContent = formatPercentage(parseFloat(similarityEvaluationElement.textContent), 1);
+
+    // 应用盈亏颜色
+    applyProfitLossClass('detail-actual_profit_rate');
+    applyProfitLossClass('detail-actual_profit');
+    applyProfitLossClass('detail-stop_loss_rate');
+    applyProfitLossClass('detail-stop_loss_profit');
+});
+</script>
+{% endblock %} 

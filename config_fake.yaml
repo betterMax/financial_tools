@@ -46,7 +46,11 @@ scraper:
     User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 
 # 定时任务配置
-scheduler:
-  future_info_update: "0 19 * * *"  # 每天19:00更新期货基础信息，cron表达式
-  transaction_backup: "0 23 * * *"  # 每天23:00备份交易记录
-  latest_price_update: "*/30 9-15 * * 1-5"  # 工作日9:00-15:00每30分钟更新一次最新价格 
+data_update:
+  schedule:
+    - hour: "11"
+      minute: "31"
+    - hour: "14"
+      minute: "30"
+    - hour: "15"
+      minute: "30"

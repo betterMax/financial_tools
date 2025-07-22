@@ -1,0 +1,371 @@
+{% extends 'base.html' %}
+
+{% block title %}编辑期货信息 - 期货数据管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h2>编辑期货信息</h2>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('future_info.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form id="editForm" class="needs-validation" novalidate>
+                <div class="row">
+                    <!-- 基本信息 -->
+                    <div class="col-md-6">
+                        <h5 class="mb-3">基本信息</h5>
+                        
+                        <div class="mb-3">
+                            <label for="contract_letter" class="form-label">合约字母 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="contract_letter" name="contract_letter" required>
+                            <div class="invalid-feedback">请输入合约字母</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label">期货名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                            <div class="invalid-feedback">请输入期货名称</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="market" class="form-label">市场 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="market" name="market" required>
+                                <option value="0">国内</option>
+                                <option value="1">国外</option>
+                            </select>
+                            <div class="invalid-feedback">请选择市场</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="exchange" class="form-label">交易所</label>
+                            <input type="text" class="form-control" id="exchange" name="exchange">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="contract_multiplier" class="form-label">合约乘数</label>
+                            <input type="number" class="form-control" id="contract_multiplier" name="contract_multiplier" step="1">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="th_main_contract" class="form-label">同花主力合约</label>
+                            <input type="text" class="form-control" id="th_main_contract" name="th_main_contract">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="current_main_contract" class="form-label">当前主力合约</label>
+                            <input type="text" class="form-control" id="current_main_contract" name="current_main_contract">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="th_order" class="form-label">同花顺顺序</label>
+                            <input type="number" class="form-control" id="th_order" name="th_order" step="1">
+                        </div>
+                    </div>
+
+                    <!-- 交易参数和趋势信息 -->
+                    <div class="col-md-6">
+                        <h5 class="mb-3">交易参数</h5>
+
+                        <div class="mb-3">
+                            <label for="long_margin_rate" class="form-label">做多保证金率</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="long_margin_rate" name="long_margin_rate" step="0.01" min="0" max="1">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="short_margin_rate" class="form-label">做空保证金率</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="short_margin_rate" name="short_margin_rate" step="0.01" min="0" max="1">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="open_fee" class="form-label">开仓费用（按手）</label>
+                            <input type="number" class="form-control" id="open_fee" name="open_fee" step="0.01">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="close_fee" class="form-label">平仓费用（按手）</label>
+                            <input type="number" class="form-control" id="close_fee" name="close_fee" step="0.01">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="close_today_rate" class="form-label">平今费率</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="close_today_rate" name="close_today_rate" step="0.000001" min="0" max="1">
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="close_today_fee" class="form-label">平今费用（按手）</label>
+                            <input type="number" class="form-control" id="close_today_fee" name="close_today_fee" step="0.01">
+                        </div>
+
+                        <h5 class="mb-3 mt-4">趋势信息</h5>
+                        <div class="mb-3">
+                            <label for="long_term_trend" class="form-label">长期趋势特征</label>
+                            <input type="text" class="form-control" id="long_term_trend" name="long_term_trend" list="trend-options" placeholder="输入趋势特征名称，可选择多个，用+分隔">
+                            <datalist id="trend-options">
+                                <!-- 选项将通过JavaScript动态加载 -->
+                            </datalist>
+                            <div class="form-text mt-2">可以输入多个趋势特征，用"+"分隔，例如：短期小幅连续上涨+长期大幅震荡下跌</div>
+                            <div id="trend_validation_feedback" class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col">
+                        <button type="submit" class="btn btn-primary">保存更改</button>
+                        <button type="button" class="btn btn-secondary" onclick="window.history.back()">取消</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 从Flask传递的ID，转换为数字
+    const futureId = parseInt("{{ future_id }}");
+    const form = document.getElementById('editForm');
+    const longTermTrendInput = document.getElementById('long_term_trend');
+    const trendOptions = document.getElementById('trend-options');
+
+    // 加载趋势信息数据
+    fetch('/api/future_info/trends')
+        .then(response => response.json())
+        .then(data => {
+            if (data.code === 0) {
+                // 清空现有选项
+                trendOptions.innerHTML = '';
+                
+                // 添加趋势选项
+                data.data.forEach(trend => {
+                    const option = document.createElement('option');
+                    option.value = trend.name;
+                    trendOptions.appendChild(option);
+                });
+                
+                // 加载期货信息
+                loadFutureInfo();
+            }
+        })
+        .catch(error => {
+            console.error('加载趋势信息失败:', error);
+            // 即使趋势信息加载失败，也加载期货信息
+            loadFutureInfo();
+        });
+
+    // 加载期货信息
+    function loadFutureInfo() {
+        fetch(`/api/future_info/get/${futureId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.code === 0 && data.data) {
+                    const future = data.data;
+                    console.log('从服务器获取的数据:', future);
+                    
+                    // 填充表单数据
+                    document.getElementById('contract_letter').value = future.contract_letter || '';
+                    document.getElementById('name').value = future.name || '';
+                    document.getElementById('market').value = future.market;
+                    document.getElementById('exchange').value = future.exchange || '';
+                    document.getElementById('contract_multiplier').value = future.contract_multiplier || '';
+                    document.getElementById('long_margin_rate').value = future.long_margin_rate || '';
+                    document.getElementById('short_margin_rate').value = future.short_margin_rate || '';
+                    document.getElementById('open_fee').value = future.open_fee || '';
+                    document.getElementById('close_fee').value = future.close_fee || '';
+                    
+                    // 特别处理平今费率
+                    const closeTodayRateInput = document.getElementById('close_today_rate');
+                    closeTodayRateInput.value = future.close_today_rate || '';
+                    console.log('平今费率值:', {
+                        original: future.close_today_rate,
+                        formatted: closeTodayRateInput.value
+                    });
+                    
+                    document.getElementById('close_today_fee').value = future.close_today_fee || '';
+                    document.getElementById('th_main_contract').value = future.th_main_contract || '';
+                    document.getElementById('current_main_contract').value = future.current_main_contract || '';
+                    document.getElementById('th_order').value = future.th_order || '';
+                    
+                    // 设置长期趋势特征
+                    longTermTrendInput.value = future.long_term_trend || '';
+                } else {
+                    alert('加载期货信息失败：未找到对应的期货信息');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('加载期货信息失败');
+            });
+    }
+
+    // 监听平今费率输入变化
+    document.getElementById('close_today_rate').addEventListener('input', function(e) {
+        console.log('平今费率输入值变化:', {
+            value: e.target.value,
+            valueAsNumber: e.target.valueAsNumber
+        });
+    });
+
+    // 添加趋势特征验证（失焦时）
+    longTermTrendInput.addEventListener('blur', function() {
+        validateTrendNames(this.value);
+    });
+
+    // 表单提交处理
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        
+        if (!form.checkValidity()) {
+            event.stopPropagation();
+            form.classList.add('was-validated');
+            return;
+        }
+
+        // 验证趋势特征
+        validateTrendNames(longTermTrendInput.value, function(isValid) {
+            if (!isValid) {
+                // 如果趋势特征无效，阻止表单提交
+                return;
+            }
+
+            // 获取平今费率的值
+            const closeTodayRateInput = document.getElementById('close_today_rate');
+            const closeTodayRateValue = closeTodayRateInput.value;
+            console.log('提交前平今费率值:', {
+                inputValue: closeTodayRateValue,
+                inputValueAsNumber: closeTodayRateInput.valueAsNumber,
+                inputStep: closeTodayRateInput.step
+            });
+
+            // 收集表单数据
+            const formData = {
+                contract_letter: document.getElementById('contract_letter').value,
+                name: document.getElementById('name').value,
+                market: parseInt(document.getElementById('market').value),
+                exchange: document.getElementById('exchange').value,
+                contract_multiplier: document.getElementById('contract_multiplier').value ? Number(document.getElementById('contract_multiplier').value) : null,
+                long_margin_rate: document.getElementById('long_margin_rate').value ? Number(document.getElementById('long_margin_rate').value) : null,
+                short_margin_rate: document.getElementById('short_margin_rate').value ? Number(document.getElementById('short_margin_rate').value) : null,
+                open_fee: document.getElementById('open_fee').value ? Number(document.getElementById('open_fee').value) : null,
+                close_fee: document.getElementById('close_fee').value ? Number(document.getElementById('close_fee').value) : null,
+                close_today_rate: closeTodayRateValue ? Number(closeTodayRateValue) : null,
+                close_today_fee: document.getElementById('close_today_fee').value ? Number(document.getElementById('close_today_fee').value) : null,
+                th_main_contract: document.getElementById('th_main_contract').value,
+                current_main_contract: document.getElementById('current_main_contract').value,
+                th_order: document.getElementById('th_order').value ? parseInt(document.getElementById('th_order').value) : null,
+                long_term_trend: document.getElementById('long_term_trend').value
+            };
+
+            console.log('准备提交的数据:', formData);
+
+            // 发送更新请求
+            fetch(`/api/future_info/update/${futureId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('服务器响应:', data);
+                if (data.code === 0) {
+                    alert('更新成功');
+                    window.location.href = "{{ url_for('future_info.index') }}";
+                } else {
+                    alert('更新失败：' + data.msg);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('更新失败');
+            });
+        });
+    });
+
+    // 验证趋势特征名称
+    function validateTrendNames(trendNames, callback) {
+        if (!trendNames.trim()) {
+            if (callback) callback(true);
+            return; // 如果为空，不验证
+        }
+
+        // 发送验证请求
+        fetch('/api/future_info/validate-trends', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ trend_names: trendNames })
+        })
+        .then(response => response.json())
+        .then(data => {
+            const feedbackElement = document.getElementById('trend_validation_feedback');
+            
+            if (data.code !== 0) {
+                // 存在无效趋势特征
+                longTermTrendInput.classList.add('is-invalid');
+                feedbackElement.textContent = `无效的趋势特征: ${data.data.invalid_trends.join(', ')}`;
+                feedbackElement.style.display = 'block';
+                if (callback) callback(false);
+            } else {
+                // 全部有效
+                longTermTrendInput.classList.remove('is-invalid');
+                longTermTrendInput.classList.add('is-valid');
+                feedbackElement.style.display = 'none';
+                if (callback) callback(true);
+            }
+        })
+        .catch(error => {
+            console.error('验证趋势特征时出错:', error);
+            if (callback) callback(false);
+        });
+    }
+
+    // 加载所有趋势特征列表用于自动完成
+    function loadTrendOptions() {
+        fetch('/api/future_info/trends')
+            .then(response => response.json())
+            .then(data => {
+                if (data.code === 0) {
+                    const trendList = document.getElementById('trend-options');
+                    // 清空现有选项
+                    trendList.innerHTML = '';
+                    
+                    // 添加新选项
+                    data.data.forEach(trend => {
+                        const option = document.createElement('option');
+                        option.value = trend.name;
+                        trendList.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('获取趋势特征失败:', error);
+            });
+    }
+
+    // 初始化页面时加载趋势特征列表
+    loadTrendOptions();
+});
+</script>
+{% endblock %} 

@@ -2,7 +2,7 @@
 数据模型初始化文件
 """
 
-from app.models.future_info import FutureInfo
+from app.models.future_info import FutureInfo, FutureDaily
 from app.models.transaction import TransactionRecord
 from app.models.trade import TradeRecord, RollTradeRecord
 from app.models.monitor import MonitorRecord

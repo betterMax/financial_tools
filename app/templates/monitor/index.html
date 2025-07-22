@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}监控记录 - 期货数据管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <div class="row mb-0 align-items-center">
+                <div class="col-md-6">
+                    <h2>监控记录</h2>
+                </div>
+                <div class="col-md-6 text-end">
+                    <a href="{{ url_for('monitor.add') }}" class="btn btn-primary btn-sm me-1">添加监控记录</a>
+                    <a href="{{ url_for('monitor.import_view') }}" class="btn btn-success btn-sm">导入监控记录</a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="get" class="mb-3">
+                <div class="row justify-content-start">
+                    <div class="col-md-auto">
+                        <select name="status" class="form-select form-select-sm">
+                            <option value="">所有状态</option>
+                            <option value="0" {% if request.args.get('status') == '0' %}selected{% endif %}>未触发</option>
+                            <option value="1" {% if request.args.get('status') == '1' %}selected{% endif %}>已触发</option>
+                            <option value="2" {% if request.args.get('status') == '2' %}selected{% endif %}>已失效</option>
+                        </select>
+                    </div>
+                    <div class="col-md-auto">
+                        <select name="market" class="form-select form-select-sm">
+                            <option value="">所有市场</option>
+                            <option value="0" {% if request.args.get('market') == '0' %}selected{% endif %}>国内</option>
+                            <option value="1" {% if request.args.get('market') == '1' %}selected{% endif %}>国际</option>
+                        </select>
+                    </div>
+                    <div class="col-md-auto">
+                        <button type="submit" class="btn btn-secondary btn-sm">筛选</button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>合约</th>
+                            <th>名称</th>
+                            <th>机会</th>
+                            <th>关键价格</th>
+                            <th>多头开仓价</th>
+                            <th>空头开仓价</th>
+                            <th>状态</th>
+                            <th>最新价格</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="9" class="text-center">暂无监控记录</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

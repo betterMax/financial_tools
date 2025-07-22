@@ -1,6 +1,6 @@
 # 期货数据管理模块
 
-## 项目目录
+## 1. 项目目录
 ```
 financial_tools/
 │
@@ -25,7 +25,7 @@ financial_tools/
 │   │   ├── transaction.py # 交易记录模型
 │   │   ├── trade.py       # 交易汇总模型
 │   │   ├── monitor.py     # 监控记录模型
-│   │   └── dimension.py   # 维度数据模型（趋势、时间范围等）
+│   │   └── dimension.py   # 维度数据模型（策略、K线形态、趋势等）
 │   │
 │   ├── services/          # 业务逻辑服务
 │   │   ├── __init__.py
@@ -74,18 +74,18 @@ financial_tools/
     └── helpers.py         # 辅助函数
 ```
 
-## 核心功能
+## 2. 核心功能
 
 1. 数据管理：包括基础信息、监控的记录、虚拟和真实开仓平仓的记录、每一笔交易的记录（包含了关联性的开仓和平常以及可能涉及到的换月和未来可能有的加仓和减仓）。这部分是作为后期高级分析功能的数据基础
 2. 数据更新：这部分涉及到从一些网络表格或者利用爬虫来按照一定结构更新指定部分的期货数据
 3. 数据统计：针对现有的数据进行一些简单的分析，这部分细节待定
 4. 数据查看及编辑：除了自动更新的数据以外，也需要一个网页可以进行访问，并进行数据新增和编辑
 
-## 数据表结构
+## 3. 数据表结构
 
-### 维护期货标的及主连的基础信息
+### 3.1 维护期货标的及主连的基础信息
 
-#### "future_info"：维护期货标的基础信息，包含的字段有：
+#### 3.1.1 "future_info"：维护期货标的基础信息，包含的字段有：
 1. 序号：相当于是ID；表格导入
 2. 合约字母：1位或者2位的英文字母，这是唯一的；表格导入
 3. 名称：可能是中文（还可能包函数字），也可能是英文；表格导入
@@ -103,7 +103,7 @@ financial_tools/
 15. 同花顺顺序：数字；表格导入
 16. 长期趋势：
 
-#### "transaction_records"：记录每一笔开仓平仓的具体数据，包含的字段有：
+#### 3.1.2 "transaction_records"：记录每一笔开仓平仓的具体数据，包含的字段有：
 1. id：自动生成
 2. 交易id：记录从属于哪个交易，对应"trade_records"里的id
 3. 成交时间：年月日小时分；表格导入，目前只有年月日的数据，暂时小时分默认为14:30
@@ -151,15 +151,15 @@ financial_tools/
 33. 中期趋势id："trend_info"id的list
 34. 中期趋势name："trend_info"id的多个name合并的字节如"长期大幅震荡上涨+短期高位中幅震荡"
 
-#### "trade_records"：对一组开仓平仓交易的汇总记录，从而评估一次交易的表现，包含的字段有：
-1. id：自动生成
-2. 换月交易主id：可选，如果是换月交易要么就是自身的id，要么就是对应那边trade记录的id
+#### 3.1.3 "trade_records"：对一组开仓平仓交易的汇总记录，从而评估一次交易的表现，包含的字段有：
+1. id：如果在transaction里有指定则继续使用，没有则自动生成
+2. 换月ID：可选，如果在transaction里有指定则继续使用，没有则自动生成
 3. 合约代码：格式和"transaction_records"的"合约代码"一致，通过本表的id和"transaction_records"的交易id进行匹配，获得的第一条记录的"合约代码"；
 4. 名称：格式和"transaction_records"的"名称"一致，通过本表的id和"transaction_records"的交易id进行匹配，获得的第一条记录的"名称"；
 5. 账户：格式和"transaction_records"的"账户"一致，通过本表的id和"transaction_records"的交易id进行匹配，获得的第一条记录的"账户"；表格导入
 6. 操作策略ID：格式和"transaction_records"的"操作策略ID"一致，通过本表的id和"transaction_records"的交易id进行匹配，获得的第一条记录的"操作策略ID"；
 7. 操作策略：对应"strategy_info"里的名称
-8. 多空仓位：0代表多头仓位，1代表空投仓位。通过本表的id和"transaction_records"的交易id进行匹配，获得的第一条记录的"多空仓位"如果是0则是多头，如果是1则是空头；
+8. 多空仓位：0代表多头仓位，1代表空投仓位。通过本表的id和"transaction_records"的交易id进行匹配，获得的第一条记录的"多空仓位"如果是0或1则是多头，如果是2或3则是空头；
 9. K线形态ID：格式和"transaction_records"的"K线形态ID"一致，通过本表的id和"transaction_records"的交易id进行匹配，获得的第一条记录的"K线形态ID"；
 10. K线形态：类似"连续上跳+长阳突破"这样的数据；
 11. 开仓时间：格式和"transaction_records"的"成交时间"一致，通过本表的id和"transaction_records"的交易id进行匹配，获得的第一条记录的"成交时间"；
@@ -181,7 +181,7 @@ financial_tools/
 27. 中期趋势ids：格式和"transaction_records"的"中期趋势ids"一致，通过本表的id和"transaction_records"的交易id进行匹配，获得的第一条记录的"中期趋势ids"
 28. 中期趋势name："trend_info"id的多个name合并的字节如"长期大幅震荡上涨+短期高位中幅震荡"
 
-#### "monitor_records"：监控标的的信息
+#### 3.1.4 "monitor_records"：监控标的的信息
 1. 序号：相当于是ID；表格导入
 2. 合约：类似"future_info"的"同花主力合约"
 3. 名称：可能是中文（还可能包函数字），也可能是英文；表格导入
@@ -207,7 +207,7 @@ financial_tools/
 23. 比例对照价格：0代表最新价格，1代表关键价格
 24. 相应比例：等于(本表内的"比例对照价格"-"可能出发价格")/"可能出发价格"
 
-#### 工具类表格
+#### 3.1.5 工具类表格
 1. "future_daily"：这个网址http://121.37.80.177/fees.html里有一个表格，表格是每天都会更新的，里面有中国期货标的的一些基础信息。这部分只要可以每天从网页更新到数据库就可以。可以覆盖之前的数据，不需要单独保存。
   a. 在合约代码那一列标注了黄色填充色的是这个类别的主连合约
   b. 最新价格在盘中不是最新的
@@ -255,26 +255,40 @@ financial_tools/
   a. id: 
   b. name: 上涨、下跌、震荡
 
-## 前端页面
-### 前端列表页面
-#### "future_info"对应的基础信息：
+## 4. 前端页面
+### 4.1 前端列表页面
+#### 4.1.1 "future_info"对应的基础信息：
 1. 功能：可以新增、编辑、删除、导出、排序
-2. 字段：
-  a. 合约字母：1位或者2位的英文字母，这是唯一的；表格导入
-  b. 名称：可能是中文（还可能包函数字），也可能是英文；表格导入
-  c. 市场：分为国内和国外，可以用数字对应；表格导入
-  d. 合约乘数：数字；从"future_daily"用合约字母匹配
-  e. 做多保证金率（按金额）：数字；从"future_daily"用合约字母匹配
-  f. 做空保证金率（按金额）：数字；从"future_daily"用合约字母匹配
-  g. 开仓费用（按手）：数字；从"future_daily"用合约字母匹配
-  h. 平仓费用（按手）：数字；从"future_daily"用合约字母匹配
-  i. 同花主力合约：是一个字符，是1位或者2位的英文字母加上4位数字，如PG2503或A2505，后面的数字代表了年份和月份，前面的字母则是合约字母；表格导入
-  j. 当前主力合约：同"同花主力合约"；表格导入
-  k. 同花顺顺序：数字；表格导入
-  l. 长期趋势：
+2. 列表字段：
+  a. 合约字母：1位或者2位的英文字母，这是唯一的；"future_info"的"contract_letter"
+  b. 名称：可能是中文（还可能包函数字），也可能是英文；"future_info"的"name"
+  c. 市场：分为国内和国外，可以用数字对应；"future_info"的"market"
+  d. 做多保证金率（按金额）：数字；"future_info"的"long_margin_rate"
+  e. 做空保证金率（按金额）：数字；"future_info"的"short_margin_rate"
+  f. 同花主力合约：是一个字符，是1位或者2位的英文字母加上4位数字，如PG2503或A2505，后面的数字代表了年份和月份，前面的字母则是合约字母；"future_info"的"th_main_contract"
+  g. 当前主力合约："future_info"的"current_main_contract"
+  h. 长期趋势："future_info"的"long_term_trend"
 3. 筛选项：市场、名称（多选）、合约字母（多选）、长期趋势
+4. 详情/编辑页面字段详情：
+ a. 编号："future_info"的"id"；不可编辑
+ b. 合约字母："future_info"的"contract_letter"；可以编辑，文本空格
+ c. 名称："future_info"的"name"；可以编辑，文本空格
+ d. 市场："future_info"的"market"；可以编辑，下拉选项（国内和国外两个选项）
+ e. 交易所："future_info"的"exchange"；可以编辑，文本空格
+ f. 合约乘数："future_info"的"contract_multiplier"；可以编辑，数字0位小数
+ g. 做多保证金率（按金额）："future_info"的"long_margin_rate"；可以编辑，数字2位小数
+ h. 做空保证金率（按金额）："future_info"的"short_margin_rate"；可以编辑，数字2位小数
+ i. 开仓费用（按手）："future_info"的"open_fee"；可以编辑，数字2位小数
+ j. 平仓费用（按手）："future_info"的"close_fee"；可以编辑，数字2位小数
+ k. 平今费率（按金额）："future_info"的"close_today_rate"；可以编辑，数字6位小数
+ l. 平今费用（按手）："future_info"的"close_today_fee"；可以编辑，数字2位小数
+ m. 同花主力合约："future_info"的"th_main_contract"；可以编辑，文本空格
+ n. 当前主力合约："future_info"的"current_main_contract"；可以编辑，文本空格
+ o. 同花顺顺序："future_info"的"th_order"；可以编辑，数字0位小数
+ p. 长期趋势："future_info"的"long_term_trend"；可以编辑，文本空格；要做数据检查，如果有“+”则把内容拆开和"trend_info"里的"name"比较要能匹配上；没有“+”则直接比较
+ q. 最新每日数据：这部分只在查看里，不用改
 
-#### "transaction_records"：记录每一笔开仓平仓的具体数据，包含的字段有：
+#### 4.1.2 "transaction_records"：记录每一笔开仓平仓的具体数据，包含的字段有：
 1. 功能：可以新增、编辑、删除、导出、排序
 2. 字段：
   a. 交易id：记录从属于哪个交易，对应"trade_records"里的id
@@ -288,7 +302,7 @@ financial_tools/
   i. 成交价格：1位小数；
   j. 成交手数：实数；
   k. 成交金额：等于本表内的"成交价格"*"成交手数"*"合约乘数"
-  l. 保证金：
+  l. 保证金：等于成交金额*利用这个“名称”和“多空仓位”的信息找到"future_info"里的"long_margin_rate"或者"short_margin_rate"
   m. 交易类别：0代表模拟交易，1代表真实交易
   n. 交易状态：0代表进行，1代表暂停，2代表暂停进行，3代表结束
   o. 最新价格：1位小数；
@@ -303,4 +317,47 @@ financial_tools/
   x. 长期趋势name："trend_info"id的多个name合并的字节如"长期大幅震荡上涨+短期高位中幅震荡"
   y. 中期趋势name："trend_info"id的多个name合并的字节如"长期大幅震荡上涨+短期高位中幅震荡"
 3. 筛选项：成交时间范围、市场、名称（多选）、合约字母（多选）、操作策略（多选）、交易类别、交易状态（多选）
+4. 列表显示字段：
+  a. 合约代码："transaction_records"的"contract_code"
+  b. 名称："transaction_records"的"name"
+  c. 交易类别："transaction_records"的"trade_type"
+  d. 操作策略："transaction_records"的"strategy_name"
+  e. 多空仓位："transaction_records"的"position_type"
+  f. K线形态："transaction_records"的"candle_pattern"
+  g. 成交价格："transaction_records"的"price"
+  h. 成交手数："transaction_records"的"volume"
+  i. 保证金："transaction_records"的"margin"
+  j. 最新价格："transaction_records"的"latest_price"
+  k. 实际收益率："transaction_records"的"actual_profit_rate"
+  l. 实际收益："transaction_records"的"actual_profit"
+  m. 止损价格："transaction_records"的"stop_loss_price"
+  o. 止损比例："transaction_records"的"stop_loss_rate"
+  p. 止损收益："transaction_records"的"stop_loss_profit"
+5. 详情/编辑字段：
+  a. ID："transaction_records"的"contract_code"；不可编辑
+  b. 交易id："transaction_records"的"trade_id"；可以编辑，同一个id的数据只能有两条
+  b. 成交时间："transaction_records"的"transaction_time"；可以编辑，DATATIME格式
+  c. 合约代码："transaction_records"的"contract_code"；可以编辑，文本空格
+  d. 名称："transaction_records"的"name"；不可编辑，根据“合约代码”生成
+  e. 账户："transaction_records"的"account"；可以编辑，默认为"华安期货"
+  f. 操作策略："transaction_records"的"strategy_name"；可以编辑，多选项，以"strategy_info"表里的数据作为下拉选项
+  g. 多空仓位：根据"transaction_records"的"position_type"进行匹配，0代表开多，1代表平多，2代表开空，3代表平空；可以编辑，4个文字就是下拉选项，注意选项里不是0,1的数字
+  h. K线形态："transaction_records"的"candle_pattern"；可以编辑，多选项，以"candle_info"表里的数据作为下拉选项
+  i. 成交价格："transaction_records"的"price"；可以编辑，2位小数
+  j. 成交手数："transaction_records"的"volume"；可以编辑，0位小数
+  k. 成交金额："transaction_records"的"amount"；不可编辑，1位小数
+  l. 保证金："transaction_records"的"margin"；不可编辑，1位小数
+  m. 交易类别：根据"transaction_records"的"trade_type"进行匹配，0代表模拟交易，1代表真实交易
+  n. 交易状态：根据"transaction_records"的"trade_status"进行匹配，0代表进行，1代表暂停，2代表暂停进行，3代表结束
+  o. 最新价格："transaction_records"的"latest_price"；可以编辑，3位小数
+  p. 实际收益率："transaction_records"的"actual_profit_rate"；不可编辑，百分比2位小数
+  q. 实际收益："transaction_records"的"actual_profit"；不可编辑，1位小数
+  r. 止损价格："transaction_records"的"stop_loss_price"；可以编辑，3位小数
+  s. 止损比例："transaction_records"的"stop_loss_rate"；不可编辑，不可编辑，百分比2位小数
+  t. 止损收益："transaction_records"的"stop_loss_profit"；不可编辑，1位小数
+  u. 操作时间："transaction_records"的"operation_time"；可以编辑
+  v. 信心指数："transaction_records"的"confidence_index"；可以编辑，0位数字
+  w. 相似度评估："transaction_records"的"similarity_evaluation"；可以编辑
+  x. 长期趋势name："transaction_records"的"long_trend_name"；可以编辑
+  y. 中期趋势name："transaction_records"的"short_trend_name"；可以编辑
 

@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}导入期货基础信息 - 期货数据管理系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>导入期货基础信息</h2>
+    <a href="{{ url_for('future_info.index') }}" class="btn btn-secondary">返回列表</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <p>请按照以下步骤操作：</p>
+                <ol>
+                    <li>下载导入模板</li>
+                    <li>按照模板格式填写数据</li>
+                    <li>上传Excel文件</li>
+                </ol>
+                <div class="alert alert-info">
+                    <strong>提示：</strong> 必填字段包括"合约字母"、"名称"和"市场(0-国内,1-国外)"。
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <button id="download-template" class="btn btn-primary">
+                    <i class="fas fa-download"></i> 下载导入模板
+                </button>
+            </div>
+        </div>
+        
+        <form id="import-form" enctype="multipart/form-data">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="file">选择Excel文件</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".xlsx" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-upload"></i> 导入数据
+                </button>
+            </div>
+        </form>
+        
+        <div id="result" class="mt-4" style="display: none;">
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('import-form');
+    const resultDiv = document.getElementById('result');
+    const downloadBtn = document.getElementById('download-template');
+    
+    // 处理下载模板按钮点击
+    downloadBtn.addEventListener('click', function(e) {
+        // 禁用按钮防止重复点击
+        downloadBtn.disabled = true;
+        
+        // 创建一个隐藏的iframe来处理下载
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = "{{ url_for('future_info.get_template') }}";
+        document.body.appendChild(iframe);
+        
+        // 3秒后重新启用按钮
+        setTimeout(() => {
+            downloadBtn.disabled = false;
+            document.body.removeChild(iframe);
+        }, 3000);
+    });
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        
+        // 显示加载状态
+        resultDiv.innerHTML = '<div class="alert alert-info">正在导入数据，请稍候...</div>';
+        resultDiv.style.display = 'block';
+        
+        fetch('/api/future_info/import', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.code === 0) {
+                // 成功导入
+                let html = `<div class="alert alert-success">${data.msg}</div>`;
+                
+                if (data.data.error_count > 0) {
+                    html += '<div class="alert alert-warning"><strong>导入过程中出现以下错误：</strong><ul>';
+                    data.data.error_messages.forEach(msg => {
+                        html += `<li>${msg}</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+                
+                resultDiv.innerHTML = html;
+            } else {
+                // 导入失败
+                resultDiv.innerHTML = `<div class="alert alert-danger">${data.msg}</div>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            resultDiv.innerHTML = '<div class="alert alert-danger">导入失败，请查看控制台了解详情</div>';
+        });
+    });
+});
+</script>
+{% endblock %} 

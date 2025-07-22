@@ -17,7 +17,7 @@ class TradeRecord(db.Model):
     contract_code = db.Column(db.String(6), nullable=False, comment='合约代码')
     name = db.Column(db.String(50), nullable=False, comment='名称')
     account = db.Column(db.String(20), nullable=False, default='华安期货', comment='账户')
-    strategy_id = db.Column(db.Integer, db.ForeignKey('strategy_info.id'), comment='操作策略ID')
+    strategy_ids = db.Column(db.Integer, db.ForeignKey('strategy_info.id'), comment='操作策略ID')
     strategy_name = db.Column(db.String(50), comment='操作策略')
     position_type = db.Column(db.Integer, nullable=False, comment='多空仓位，0-多头，1-空头')
     candle_pattern_id = db.Column(db.Integer, db.ForeignKey('candle_info.id'), comment='K线形态ID')
@@ -56,7 +56,7 @@ class TradeRecord(db.Model):
             'contract_code': self.contract_code,
             'name': self.name,
             'account': self.account,
-            'strategy_id': self.strategy_id,
+            'strategy_ids': self.strategy_ids,
             'strategy_name': self.strategy_name,
             'position_type': self.position_type,
             'candle_pattern_id': self.candle_pattern_id,

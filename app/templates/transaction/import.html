@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block title %}导入交易记录 - 期货数据管理系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>导入交易记录</h2>
+    <a href="{{ url_for('transaction.index') }}" class="btn btn-secondary">返回列表</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <p>请按照以下步骤操作：</p>
+                <ol>
+                    <li>下载导入模板</li>
+                    <li>按照模板格式填写数据</li>
+                    <li>上传Excel文件</li>
+                </ol>
+                <div class="alert alert-info">
+                    <strong>提示：</strong> 必填字段为交易ID、合约代码、合约名称、多空仓位、成交价格、成交手数。多空仓位取值：0-开多，1-平多，2-开空，3-平空。
+                </div>
+                
+                <div class="alert alert-warning">
+                    <strong>重要说明：</strong>
+                    <ol>
+                        <li>每个<strong>交易ID</strong>最多只能出现两次，一次开仓一次平仓</li>
+                        <li>具有相同交易ID的记录必须组成有效的开平仓配对：
+                            <ul>
+                                <li>开多(0)必须与平多(1)配对</li>
+                                <li>开空(2)必须与平空(3)配对</li>
+                            </ul>
+                        </li>
+                        <li>如果导入失败，请尝试<a href="#" onclick="clearCache()">清除浏览器缓存</a>或使用新的浏览器窗口重试</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <button id="download-template" class="btn btn-primary">
+                    <i class="fas fa-download"></i> 下载导入模板
+                </button>
+            </div>
+        </div>
+        
+        <form id="import-form" enctype="multipart/form-data">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="file">选择Excel文件</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".xlsx" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-upload"></i> 导入数据
+                </button>
+            </div>
+        </form>
+        
+        <div id="result" class="mt-4" style="display: none;">
+        </div>
+    </div>
+</div>
+
+<script>
+// 清除浏览器缓存的函数
+function clearCache() {
+    // 添加一个随机参数来强制刷新页面
+    const timestamp = new Date().getTime();
+    window.location.href = window.location.href.split('?')[0] + '?cache_buster=' + timestamp;
+}
+
+// 添加切换行数据显示/隐藏的函数
+function toggleRowData(btn) {
+    const rowData = btn.nextElementSibling;
+    if (rowData.style.display === 'none') {
+        rowData.style.display = 'block';
+        btn.textContent = '隐藏行数据';
+    } else {
+        rowData.style.display = 'none';
+        btn.textContent = '显示行数据';
+    }
+}
+
+// 切换元素显示/隐藏的通用函数
+function toggleElement(id) {
+    const element = document.getElementById(id);
+    if (element) {
+        if (element.style.display === 'none') {
+            element.style.display = 'block';
+        } else {
+            element.style.display = 'none';
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('import-form');
+    const resultDiv = document.getElementById('result');
+    const downloadBtn = document.getElementById('download-template');
+    
+    // 处理下载模板按钮点击
+    downloadBtn.addEventListener('click', function(e) {
+        // 禁用按钮防止重复点击
+        downloadBtn.disabled = true;
+        
+        // 创建一个隐藏的iframe来处理下载
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = "{{ url_for('transaction.get_template') }}";
+        document.body.appendChild(iframe);
+        
+        // 3秒后重新启用按钮
+        setTimeout(() => {
+            downloadBtn.disabled = false;
+            document.body.removeChild(iframe);
+        }, 3000);
+    });
+    
+    // 处理表单提交（导入文件）
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        
+        // 显示加载状态
+        resultDiv.innerHTML = '<div class="alert alert-info">正在导入数据，请稍候...</div>';
+        resultDiv.style.display = 'block';
+        
+        // 添加随机参数避免缓存
+        const cacheBuster = new Date().getTime();
+        
+        fetch(`/transaction/api/import?cache_buster=${cacheBuster}`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.code === 0) {
+                // 成功导入
+                let html = `<div class="alert alert-success">${data.msg}</div>`;
+                
+                if (data.data.error_count > 0) {
+                    html += '<div class="alert alert-warning">';
+                    html += '<strong>导入过程中出现以下错误：</strong>';
+                    html += '<button class="btn btn-sm btn-link float-right" id="toggle-errors">显示/隐藏详情</button>';
+                    html += '<div id="error-details" style="display: none; margin-top: 10px;">';
+                    
+                    if (data.data.error_messages.length > 0) {
+                        html += '<ul class="list-group">';
+                        data.data.error_messages.forEach(msg => {
+                            let errorMsg = msg;
+                            if (typeof msg === 'string') {
+                                // 分离错误消息和行数据
+                                const parts = msg.split('\n');
+                                if (parts.length > 1) {
+                                    // 格式化显示
+                                    html += `<li class="list-group-item list-group-item-danger">${parts[0]}`;
+                                    html += `<button class="btn btn-sm btn-link" onclick="toggleRowData(this)">显示行数据</button>`;
+                                    html += `<div class="row-data" style="display:none;margin-top:10px;"><pre>${parts[1]}</pre></div>`;
+                                    html += `</li>`;
+                                } else {
+                                    html += `<li class="list-group-item list-group-item-danger">${msg}</li>`;
+                                }
+                            } else {
+                                html += `<li class="list-group-item list-group-item-danger">${msg}</li>`;
+                            }
+                        });
+                        html += '</ul>';
+                    } else {
+                        html += '<p>没有详细错误信息</p>';
+                    }
+                    
+                    html += '</div></div>';
+                }
+                
+                resultDiv.innerHTML = html;
+                
+                // 添加错误切换按钮的事件监听
+                const toggleErrorsBtn = document.getElementById('toggle-errors');
+                if (toggleErrorsBtn) {
+                    toggleErrorsBtn.addEventListener('click', function() {
+                        const errorDetails = document.getElementById('error-details');
+                        if (errorDetails.style.display === 'none') {
+                            errorDetails.style.display = 'block';
+                            this.textContent = '隐藏详情';
+                        } else {
+                            errorDetails.style.display = 'none';
+                            this.textContent = '显示详情';
+                        }
+                    });
+                }
+            } else {
+                // 导入失败
+                resultDiv.innerHTML = `<div class="alert alert-danger">${data.msg}</div>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            resultDiv.innerHTML = '<div class="alert alert-danger">导入失败，请查看控制台了解详情</div>';
+        });
+    });
+});
+</script>
+{% endblock %} 

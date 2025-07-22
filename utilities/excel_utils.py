@@ -23,9 +23,17 @@ def save_results_to_excel(results, excel_path):
         df = pd.DataFrame(columns=['代码', '价格'])
 
     for idx, (code, price) in enumerate(results, start=1):
-        price = round(float(price), 1)
+        # 处理特殊价格值
+        if price == '--':
+            price_value = pd.NA
+        else:
+            try:
+                price_value = round(float(price), 1)
+            except (ValueError, TypeError):
+                price_value = pd.NA
+        
         df.at[idx-1, '代码'] = code
-        df.at[idx-1, '价格'] = price
+        df.at[idx-1, '价格'] = price_value
 
     df.to_excel(excel_path, index=False)
 

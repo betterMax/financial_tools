@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}首页 - 期货数据管理系统{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-4">欢迎使用期货数据管理系统</h1>
+    <p class="lead">这是一个用于管理期货数据的系统，包括期货基础信息、交易记录、交易汇总和标的监控等功能。</p>
+    <hr class="my-4">
+    <p>请从上方导航栏选择要使用的功能。</p>
+</div>
+
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">期货基础信息</h5>
+                <p class="card-text">管理期货合约的基础信息，包括合约代码、名称、交易所等。</p>
+                <a href="{{ url_for('future_info.index') }}" class="btn btn-primary">进入</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">交易记录</h5>
+                <p class="card-text">记录期货交易的详细信息，包括买入、卖出记录等。</p>
+                <a href="{{ url_for('transaction.index') }}" class="btn btn-primary">进入</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">交易汇总</h5>
+                <p class="card-text">汇总交易信息，统计盈亏情况和交易表现。</p>
+                <a href="{{ url_for('trade.index') }}" class="btn btn-primary">进入</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">标的监控</h5>
+                <p class="card-text">监控关注的期货标的，包括价格、持仓量等信息。</p>
+                <a href="{{ url_for('monitor.index') }}" class="btn btn-primary">进入</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

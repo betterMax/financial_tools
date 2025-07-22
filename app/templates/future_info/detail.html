@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}期货信息详情 - 期货数据管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h2>期货详情 - {{ future.name }}</h2>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('future_info.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回列表
+            </a>
+            <a href="{{ url_for('future_info.edit', id=future.id) }}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> 编辑
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">基本信息</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tbody>
+                            <tr>
+                                <th style="width: 200px">合约字母</th>
+                                <td>{{ future.contract_letter }}</td>
+                            </tr>
+                            <tr>
+                                <th>期货名称</th>
+                                <td>{{ future.name }}</td>
+                            </tr>
+                            <tr>
+                                <th>市场</th>
+                                <td>{{ '国内' if future.market == 0 else '国外' }}</td>
+                            </tr>
+                            <tr>
+                                <th>交易所</th>
+                                <td>{{ future.exchange or '未设置' }}</td>
+                            </tr>
+                            <tr>
+                                <th>合约乘数</th>
+                                <td>{{ future.contract_multiplier or '未设置' }}</td>
+                            </tr>
+                            <tr>
+                                <th>同花主力合约</th>
+                                <td>{{ future.th_main_contract or '未设置' }}</td>
+                            </tr>
+                            <tr>
+                                <th>当前主力合约</th>
+                                <td>{{ future.current_main_contract or '未设置' }}</td>
+                            </tr>
+                            <tr>
+                                <th>同花顺顺序</th>
+                                <td>{{ future.th_order or '未设置' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">交易参数</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tbody>
+                            <tr>
+                                <th style="width: 200px">做多保证金率</th>
+                                <td>{{ '{:.2%}'.format(future.long_margin_rate) if future.long_margin_rate else '未设置' }}</td>
+                            </tr>
+                            <tr>
+                                <th>做空保证金率</th>
+                                <td>{{ '{:.2%}'.format(future.short_margin_rate) if future.short_margin_rate else '未设置' }}</td>
+                            </tr>
+                            <tr>
+                                <th>开仓费用（按手）</th>
+                                <td>{{ future.open_fee or '未设置' }}</td>
+                            </tr>
+                            <tr>
+                                <th>平仓费用（按手）</th>
+                                <td>{{ future.close_fee or '未设置' }}</td>
+                            </tr>
+                            <tr>
+                                <th>平今费率</th>
+                                <td>{{ '{:.2%}'.format(future.close_today_rate) if future.close_today_rate else '未设置' }}</td>
+                            </tr>
+                            <tr>
+                                <th>平今费用（按手）</th>
+                                <td>{{ future.close_today_fee or '未设置' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">趋势信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>长期趋势特征</label>
+                        <p class="form-control-plaintext">{{ future.long_term_trend or '未设置' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if daily_data %}
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">最新每日数据</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>合约代码</th>
+                                    <th>最新价格</th>
+                                    <th>成交量</th>
+                                    <th>持仓量</th>
+                                    <th>是否主力</th>
+                                    <th>更新时间</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for daily in daily_data %}
+                                <tr>
+                                    <td>{{ daily.contract_code }}</td>
+                                    <td>{{ daily.latest_price }}</td>
+                                    <td>{{ daily.volume }}</td>
+                                    <td>{{ daily.open_interest }}</td>
+                                    <td>
+                                        {% if daily.is_main_contract %}
+                                        <span class="badge bg-success">是</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">否</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ daily.update_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center">暂无每日数据</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}导入交易记录{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">导入交易记录</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5><i class="icon fas fa-info"></i> 导入说明</h5>
+                        <ol>
+                            <li>下载导入模板Excel文件</li>
+                            <li>按照模板格式填写交易记录数据</li>
+                            <li>上传填写好的Excel文件</li>
+                        </ol>
+                        <p class="mb-0">
+                            <strong>必填字段：</strong>合约代码、名称、多空仓位(0-开多,1-平多,2-开空,3-平空)、成交价格、成交手数
+                        </p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <!-- 下载模板按钮 -->
+                            <div class="form-group">
+                                <a href="{{ url_for('transaction.get_template') }}" class="btn btn-info">
+                                    <i class="fas fa-download"></i> 下载导入模板
+                                </a>
+                            </div>
+
+                            <!-- 上传表单 -->
+                            <form id="uploadForm" enctype="multipart/form-data">
+                                <div class="form-group">
+                                    <label for="file">选择文件</label>
+                                    <div class="custom-file">
+                                        <input type="file" class="custom-file-input" id="file" name="file" accept=".xlsx">
+                                        <label class="custom-file-label" for="file">选择Excel文件</label>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-upload"></i> 开始导入
+                                    </button>
+                                    <a href="{{ url_for('transaction.index') }}" class="btn btn-default">
+                                        <i class="fas fa-arrow-left"></i> 返回列表
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- 导入结果 -->
+                    <div id="importResult" style="display: none;">
+                        <div class="alert" role="alert">
+                            <h5><i class="icon fas fa-info"></i> 导入结果</h5>
+                            <p id="resultMessage" class="mb-0"></p>
+                            <div id="errorDetails" style="display: none;">
+                                <hr>
+                                <p class="mb-1">错误详情：</p>
+                                <ul id="errorList" class="mb-0"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // 文件选择处理
+    $('.custom-file-input').on('change', function() {
+        let fileName = $(this).val().split('\\').pop();
+        $(this).next('.custom-file-label').html(fileName || '选择Excel文件');
+    });
+
+    // 表单提交处理
+    $('#uploadForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        // 检查文件
+        let fileInput = $('#file')[0];
+        if (!fileInput.files || !fileInput.files[0]) {
+            showResult('请选择要导入的文件', 'warning');
+            return;
+        }
+
+        // 检查文件类型
+        let fileName = fileInput.files[0].name;
+        if (!fileName.endsWith('.xlsx')) {
+            showResult('请上传Excel文件(.xlsx)', 'warning');
+            return;
+        }
+
+        // 显示加载状态
+        let submitBtn = $(this).find('button[type="submit"]');
+        let originalText = submitBtn.html();
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> 导入中...');
+
+        // 创建FormData对象
+        let formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        // 发送请求
+        $.ajax({
+            url: "{{ url_for('transaction.import_excel') }}",
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.code === 0) {
+                    // 导入成功
+                    let msg = response.msg;
+                    showResult(msg, 'success');
+                    
+                    // 显示错误详情（如果有）
+                    if (response.data.error_messages && response.data.error_messages.length > 0) {
+                        showErrorDetails(response.data.error_messages);
+                    }
+                    
+                    // 清空文件选择
+                    $('#file').val('').next('.custom-file-label').html('选择Excel文件');
+                } else {
+                    // 导入失败
+                    showResult(response.msg, 'danger');
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                showResult('导入失败：' + textStatus, 'danger');
+            },
+            complete: function() {
+                // 恢复按钮状态
+                submitBtn.prop('disabled', false).html(originalText);
+            }
+        });
+    });
+
+    // 显示结果
+    function showResult(message, type) {
+        let resultDiv = $('#importResult');
+        let alertDiv = resultDiv.find('.alert');
+        let messageP = $('#resultMessage');
+        
+        // 设置消息和样式
+        messageP.text(message);
+        alertDiv.removeClass('alert-success alert-warning alert-danger')
+               .addClass('alert-' + type);
+        
+        // 设置图标
+        let icon = alertDiv.find('.icon');
+        icon.removeClass('fa-info fa-check fa-times fa-exclamation-triangle');
+        switch (type) {
+            case 'success':
+                icon.addClass('fa-check');
+                break;
+            case 'warning':
+                icon.addClass('fa-exclamation-triangle');
+                break;
+            case 'danger':
+                icon.addClass('fa-times');
+                break;
+            default:
+                icon.addClass('fa-info');
+        }
+        
+        // 显示结果区域
+        resultDiv.show();
+        
+        // 隐藏错误详情
+        $('#errorDetails').hide();
+        $('#errorList').empty();
+        
+        // 滚动到结果区域
+        resultDiv[0].scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // 显示错误详情
+    function showErrorDetails(errors) {
+        let errorList = $('#errorList');
+        errorList.empty();
+        
+        errors.forEach(function(error) {
+            errorList.append(`<li>${error}</li>`);
+        });
+        
+        $('#errorDetails').show();
+    }
+});
+</script>
+{% endblock %} 

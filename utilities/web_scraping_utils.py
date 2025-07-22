@@ -157,7 +157,7 @@ def extract_data_with_refined_trim():
         if index != 0:  # 如果不是第一页，则点击并等待
             btn.click()
             # 等待页面加载完成，此处增加固定等待时间，例如5秒
-            time.sleep(3)
+            time.sleep(5)
 
         print(f'Processing page {index} - {btn.text if index != 0 else "首页"}')
 
@@ -206,7 +206,7 @@ def extract_data_with_refined_trim():
                     all_satisfied = True
                     if next_page_buttons and "下一页" in [btn.text for btn in next_page_buttons]:
                         next_page_buttons[-1].click()
-                        time.sleep(3)
+                        time.sleep(5)
                         # 获取新页面的数据并添加到 item_df
                         new_page_df = get_table_data(div)
                         item_df = pd.concat([item_df, new_page_df], ignore_index=True)
@@ -344,7 +344,7 @@ def fetch_price_general(driver, url, selector, selector_type):
             if attempt > 0:  # 如果不是第一次尝试，先刷新页面
                 print(f"Attempting to refresh and retry: {url}")
                 driver.refresh()
-                time.sleep(3)  # 给页面一些额外的时间来加载
+                time.sleep(5)  # 给页面一些额外的时间来加载
 
             driver.get(url)
             # 等待JavaScript加载完成

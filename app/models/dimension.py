@@ -15,7 +15,7 @@ class StrategyInfo(db.Model):
     id = db.Column(db.Integer, primary_key=True, comment='序号')
     name = db.Column(db.String(50), nullable=False, comment='名称')
     open_close_type = db.Column(db.Integer, nullable=False, comment='开平仓类型，0-开仓，1-平仓')
-    strategy_type = db.Column(db.Integer, nullable=False, comment='策略类型，0-阻力位，1-趋势')
+    strategy_type = db.Column(db.Integer, nullable=False, comment='策略类型，0-压力位，1-支撑位，2-趋势，3-换月')
     
     def __repr__(self):
         return f'<StrategyInfo {self.id} - {self.name}>'

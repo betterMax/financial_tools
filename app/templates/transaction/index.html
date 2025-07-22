@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}交易记录列表{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">交易记录列表</h3>
+                    <div class="card-tools">
+                        <a href="{{ url_for('transaction.add') }}" class="btn btn-primary btn-sm">新增交易</a>
+                        <a href="{{ url_for('transaction.import_view') }}" class="btn btn-success btn-sm">导入交易</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- 筛选表单 -->
+                    <form id="filterForm" class="mb-3">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>时间范围</label>
+                                    <div class="input-group">
+                                        <input type="date" class="form-control" name="start_time">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">至</span>
+                                        </div>
+                                        <input type="date" class="form-control" name="end_time">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>合约名称</label>
+                                    <input type="text" class="form-control" name="name">
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>合约代码</label>
+                                    <input type="text" class="form-control" name="contract_code">
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>交易类型</label>
+                                    <select class="form-control" name="trade_type">
+                                        <option value="">全部</option>
+                                        <option value="0">模拟交易</option>
+                                        <option value="1">实盘交易</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>交易状态 (可多选)</label>
+                                    <select class="form-control select2" name="trade_status" multiple="multiple" data-placeholder="选择状态">
+                                        <option value="0">进行中</option>
+                                        <option value="1">已暂停</option>
+                                        <option value="2">暂停进行</option>
+                                        <option value="3">已结束</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 text-end">
+                                <button type="submit" class="btn btn-primary">查询</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- 数据表格 -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>成交时间</th>
+                                    <th>合约代码</th>
+                                    <th>名称</th>
+                                    <th>账户</th>
+                                    <th>交易类别</th>
+                                    <th>操作策略</th>
+                                    <th>多空仓位</th>
+                                    <th>K线形态</th>
+                                    <th>成交价格</th>
+                                    <th>成交手数</th>
+                                    <th>保证金</th>
+                                    <th>最新价格</th>
+                                    <th>实际收益率</th>
+                                    <th>实际收益</th>
+                                    <th>止损价格</th>
+                                    <th>止损比例</th>
+                                    <th>止损收益</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionList">
+                                <!-- 数据将通过JavaScript动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- 分页控件和每页数量选择器 -->
+                    <div class="d-flex justify-content-center align-items-center mt-3">
+                        <nav aria-label="Page navigation" class="me-3">
+                            <ul class="pagination mb-0" id="pagination">
+                                <!-- 分页按钮将通过JavaScript动态加载 -->
+                            </ul>
+                        </nav>
+                        <div class="d-flex align-items-center">
+                            <label for="itemsPerPageSelect" class="col-form-label me-2 mb-0">每页:</label>
+                            <select class="form-select form-select-sm" id="itemsPerPageSelect" style="width: auto;">
+                                <option value="10">10</option>
+                                <option value="20" selected>20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@x.x.x/dist/select2-bootstrap4.min.css">
+<style>
+    .select2-container--bootstrap4 .select2-selection--multiple {
+        min-height: calc(1.5em + .75rem + 2px);
+    }
+    .select2-container--bootstrap4 .select2-selection--multiple .select2-selection__rendered {
+        padding-bottom: 0;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+function formatNumber(num, precision = 3) {
+    if (num === null || num === undefined || isNaN(num)) {
+        return '-';
+    }
+    let fixedNum = Number(parseFloat(num).toFixed(precision)); 
+    return fixedNum.toString();
+}
+
+function formatPercentage(num, precision = 2) {
+    if (num === null || num === undefined || isNaN(num)) {
+        return '-';
+    }
+    let percentage = parseFloat(num) * 100;
+    return formatNumber(percentage, precision) + '%';
+}
+
+$(document).ready(function() {
+    $('.select2').select2({
+        theme: 'bootstrap4',
+        width: '100%'
+    });
+
+    let currentPage = 1;
+    let currentItemsPerPage = parseInt($('#itemsPerPageSelect').val()) || 20;
+
+    function loadTransactions(page = 1, filters = {}) {
+        currentPage = page;
+        filters.page = page;
+        filters.limit = currentItemsPerPage;
+
+        const selectedStatuses = $('select[name="trade_status"]').val();
+        if (selectedStatuses && selectedStatuses.length > 0) {
+            filters.trade_status = selectedStatuses;
+        }
+
+        $('#transactionList').html(`<tr><td colspan="19" class="text-center">数据加载中...</td></tr>`);
+        $('#pagination').empty();
+
+        $.get("{{ url_for('transaction.get_list') }}", filters, function(response) {
+            if (response.code === 0) {
+                let html = '';
+                if (response.data && response.data.length > 0) {
+                    response.data.forEach(function(item) {
+                        html += `
+                            <tr>
+                                <td>${item.id || '-'}</td>
+                                <td>${item.transaction_time || '-'}</td>
+                                <td>${item.contract_code || '-'}</td>
+                                <td>${item.name || '-'}</td>
+                                <td>${item.account || '-'}</td>
+                                <td>${getTradeTypeText(item.trade_type)}</td>
+                                <td>${item.strategy_name || '-'}</td>
+                                <td>${getPositionTypeText(item.position_type)}</td>
+                                <td>${item.candle_pattern || '-'}</td>
+                                <td>${formatNumber(item.price, 3)}</td>
+                                <td>${formatNumber(item.volume, 0)}</td>
+                                <td>${formatNumber(item.margin, 2)}</td>
+                                <td>${formatNumber(item.latest_price, 3)}</td>
+                                <td class="${getProfitLossClass(item.actual_profit_rate)}">${formatPercentage(item.actual_profit_rate, 2)}</td>
+                                <td class="${getProfitLossClass(item.actual_profit)}">${formatNumber(item.actual_profit, 2)}</td>
+                                <td>${formatNumber(item.stop_loss_price, 3)}</td>
+                                <td class="${getProfitLossClass(item.stop_loss_rate)}">${formatPercentage(item.stop_loss_rate, 2)}</td>
+                                <td class="${getProfitLossClass(item.stop_loss_profit)}">${formatNumber(item.stop_loss_profit, 2)}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            操作
+                                        </button>
+                                        <div class="dropdown-menu">
+                                            <a class="dropdown-item" href="/transaction/detail/view/${item.id}">详情</a>
+                                            <a class="dropdown-item" href="/transaction/edit/${item.id}">编辑</a>
+                                            <div class="dropdown-divider"></div>
+                                            <button class="dropdown-item text-danger" onclick="deleteTransaction(${item.id})">删除</button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    html = `<tr><td colspan="19" class="text-center">暂无数据</td></tr>`;
+                }
+                $('#transactionList').html(html);
+                renderPagination(response.count, page, currentItemsPerPage);
+            } else {
+                $('#transactionList').html(`<tr><td colspan="19" class="text-center text-danger">加载失败：${response.msg}</td></tr>`);
+            }
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            $('#transactionList').html(`<tr><td colspan="19" class="text-center text-danger">加载失败：${textStatus}</td></tr>`);
+        });
+    }
+
+    function renderPagination(totalItems, currentPage, itemsPerPage) {
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        let paginationHtml = '';
+
+        if (totalPages <= 1) {
+            $('#pagination').empty();
+            $('#itemsPerPageSelect').closest('div').hide();
+            return;
+        } else {
+            $('#itemsPerPageSelect').closest('div').show();
+        }
+
+        paginationHtml += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                            <a class="page-link" href="#" data-page="${currentPage - 1}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                           </li>`;
+
+        const maxPagesToShow = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+        let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+
+        if (endPage - startPage + 1 < maxPagesToShow) {
+            startPage = Math.max(1, endPage - maxPagesToShow + 1);
+        }
+
+        if (startPage > 1) {
+            paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`;
+            if (startPage > 2) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHtml += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                                <a class="page-link" href="#" data-page="${i}">${i}</a>
+                               </li>`;
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+            paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`;
+        }
+
+        paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                            <a class="page-link" href="#" data-page="${currentPage + 1}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                           </li>`;
+
+        $('#pagination').html(paginationHtml);
+
+        $('#pagination .page-link').on('click', function(e) {
+            e.preventDefault();
+            const page = $(this).data('page');
+            if (page && page !== currentPage) {
+                const filters = getFilters();
+                loadTransactions(page, filters);
+            }
+        });
+    }
+
+    function getFilters() {
+        const filters = {};
+        $('#filterForm').serializeArray().forEach(function(item) {
+            if (item.value) {
+                if (item.name === 'trade_status') {
+                    if (!filters[item.name]) {
+                        filters[item.name] = [];
+                    }
+                    filters[item.name].push(item.value);
+                } else {
+                    filters[item.name] = item.value;
+                }
+            }
+        });
+        return filters;
+    }
+
+    function getPositionTypeText(type) {
+        const types = {
+            0: '开多',
+            1: '平多',
+            2: '开空',
+            3: '平空'
+        };
+        return types[type] || '未知';
+    }
+
+    function getTradeTypeText(type) {
+        return type === 1 ? '实盘' : (type === 0 ? '模拟' : '未知');
+    }
+
+    function getProfitLossClass(value) {
+        if (value === null || value === undefined || isNaN(value)) {
+            return '';
+        }
+        const num = parseFloat(value);
+        if (num > 0) return 'text-danger';
+        if (num < 0) return 'text-success';
+        return '';
+    }
+
+    window.deleteTransaction = function(id) {
+        if (!id) return;
+        if (confirm('确认要删除这条交易记录吗？(将同时删除关联汇总记录)')) {
+            $.ajax({
+                url: "/transaction/api/delete/" + id,
+                type: 'DELETE',
+                success: function(response) {
+                    if (response.code === 0) {
+                        alert('删除成功');
+                        const filters = getFilters();
+                        loadTransactions(currentPage, filters);
+                    } else {
+                        alert('删除失败：' + response.msg);
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    alert('删除失败：' + textStatus);
+                }
+            });
+        }
+    }
+
+    $('#filterForm').on('submit', function(e) {
+        e.preventDefault();
+        const filters = getFilters();
+        loadTransactions(1, filters);
+    });
+
+    $('#itemsPerPageSelect').on('change', function() {
+        currentItemsPerPage = parseInt($(this).val());
+        const filters = getFilters();
+        loadTransactions(1, filters);
+    });
+
+    loadTransactions();
+});
+</script>
+{% endblock %} 
